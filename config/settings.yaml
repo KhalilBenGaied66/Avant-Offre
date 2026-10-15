@@ -77,19 +77,18 @@ search:
   rrf_k: 60
   rerank_top_n: 50
   profile_max_wins: 50        # most recent past wins kept in a profile
-  profile_strategy: max       # max | centroid (chosen on the tuning split, M3)
-  retrievers: [bm25]          # bm25 | dense | cpv; hybrid when several (M3 decides)
+  profile_strategy: max       # max | mean (mean = centroid); chosen on the tuning split
+  retrievers: [bm25]          # bm25 | dense; hybrid (RRF) when several — set from reports/matching.md
   rerank: false
   bm25:
     k1: 1.5
     b: 0.75
 
+# Step-5 eligibility. Deadline, maximum amount and departments are the bid team's hard stops
+# and live in config/scorecard.yaml (one source of truth); the rules below complete them.
 filters:
-  min_days_to_deadline: 15
-  departments: null           # null = no restriction
   min_amount_eur: null
-  max_amount_eur: null
-  procedures: null
+  procedures: null            # null = every procedure
   excluded_cpv_divisions: []
 
 intel:
@@ -111,6 +110,7 @@ eval:
   bootstrap_resamples: 1000
   ks: [10, 20, 50]
   ndcg_k: 20
+  embed_tolerance: 0.01     # embed bench: fastest model within this Recall@20 of the best
   brief_sample_size: 50
   brief_review_samples: 10
 

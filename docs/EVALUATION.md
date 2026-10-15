@@ -4,6 +4,12 @@ Every number lives in `reports/` and is produced by `make eval-sample` / `make e
 This file only records what was run, when, and what it changed.
 
 ## Changelog
+- 2026-10-15 (M3) — Dense retrieval (sentence-transformers, LanceDB), max vs mean (centroid)
+  profiles, RRF hybrid built from the tuning-best variants, cross-encoder reranker, per-method
+  latency, mechanical application of the step-6 rule; embedding benchmark (Recall@20, nDCG@20,
+  s / 1,000 texts, index size, selection rule). Commands: `avant-offre eval matching`,
+  `avant-offre eval embed`. Exercised in CI with deterministic test doubles only; not run on data
+  (no data, and the model hosts are blocked here).
 - 2026-10-15 (M2) — Backtest harness in place: seeded company split, leakage guard and test,
   company selection stratified by CPV division, CPV-alert and BM25 baselines, Recall@10/20/50,
   nDCG@20, MRR with 1,000-resample bootstrap CIs and a paired difference for the headline.

@@ -30,7 +30,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = Path(os.environ.get("AVANT_OFFRE_CONFIG_DIR", PROJECT_ROOT / "config"))
 
 Mode = Literal["sample", "full"]
-Retriever = Literal["bm25", "dense", "cpv"]
+Retriever = Literal["bm25", "dense"]
 
 
 def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
@@ -136,17 +136,14 @@ class SearchConfig(BaseModel):
     rrf_k: int = 60
     rerank_top_n: int = 50
     profile_max_wins: int = 50
-    profile_strategy: Literal["max", "centroid"] = "max"
+    profile_strategy: Literal["max", "mean"] = "max"  # mean == centroid for cosine
     retrievers: list[Retriever] = Field(default_factory=lambda: list[Retriever](["bm25"]))
     rerank: bool = False
     bm25: Bm25Config = Field(default_factory=Bm25Config)
 
 
 class FiltersConfig(BaseModel):
-    min_days_to_deadline: int = 15
-    departments: list[str] | None = None
     min_amount_eur: float | None = None
-    max_amount_eur: float | None = None
     procedures: list[str] | None = None
     excluded_cpv_divisions: list[str] = Field(default_factory=list)
 
@@ -171,6 +168,7 @@ class EvalConfig(BaseModel):
     bootstrap_resamples: int = 1000
     ks: list[int] = Field(default_factory=lambda: [10, 20, 50])
     ndcg_k: int = 20
+    embed_tolerance: float = 0.01
     brief_sample_size: int = 50
     brief_review_samples: int = 10
 

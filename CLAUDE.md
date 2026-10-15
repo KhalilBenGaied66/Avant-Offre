@@ -34,7 +34,8 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - `make quality` regenerate `docs/DATA_QUALITY.md`
 - `make index-sample` / `make index-full` BM25 + vectors
 - `make eval-sample` / `make eval-full` all backtests → `reports/`
-  (single backtest: `uv run avant-offre eval matching-baselines`)
+  (single backtest: `uv run avant-offre eval matching-baselines | matching | embed`)
+- `uv run avant-offre index [--dense]` · `uv run avant-offre match --siret <s>` live ranking
 - `make serve` FastAPI on :8000 · `make mcp` MCP server · `make web` React dev server
 
 ## Conventions
