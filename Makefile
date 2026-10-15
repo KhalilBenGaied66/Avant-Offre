@@ -9,7 +9,7 @@ CLI := $(RUN) avant-offre
 
 .PHONY: setup setup-full lint format test check-sources data-sample data-full quality \
         index-sample index-full eval-sample eval-full serve mcp mcp-http web web-install \
-        web-build ci
+        web-build ci lint-workflows
 
 setup:            ## install core + dev deps (no model runtime)
 	$(UV) sync --extra llm
@@ -28,6 +28,9 @@ format:
 
 test:
 	$(RUN) pytest
+
+lint-workflows:     ## validate .github/workflows (GitHub rejects invalid files without running a job)
+	$(UV) tool run --from actionlint-py actionlint
 
 check-sources:
 	$(RUN) python scripts/check_sources.py

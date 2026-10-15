@@ -75,6 +75,9 @@ ignore = [
 [tool.ruff.lint.pylint]
 max-branches = 15
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "PLR", "N802"]
 "scripts/**" = ["T201"]
