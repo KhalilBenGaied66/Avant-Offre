@@ -28,6 +28,7 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
    bids or writes to external systems.
 
 ## Commands (keep this list current)
+- Cloud sessions install deps automatically (`.claude/hooks/session-start.sh`).
 - `make setup` install deps (uv) · `make lint` ruff + mypy · `make test` pytest ·
   `make lint-workflows` actionlint on CI files
 - `make check-sources` reachability of every data source
