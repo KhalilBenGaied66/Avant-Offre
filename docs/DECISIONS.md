@@ -70,6 +70,50 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M2: recall is measured on positives inside the candidate pool
+Context: SPEC §7.2 sets the pool to test-window awards in the departments where the company won
+before t0. A company's test-window win outside those departments cannot be ranked by any method.
+Decision: recall, nDCG and MRR are computed over in-pool positives; the report counts the
+positives outside the pool and their share. Companies without an in-pool positive are listed but
+not scored.
+Alternatives considered: counting unreachable positives as misses (lowers every method by the
+same factor and hides it).
+Evidence: `reports/matching_baselines.md`, "Positives per company" (once run).
+Revisit if: the outside-pool share is large; then widen the pool (neighbouring departments).
+
+### 2026-10-15 — M2: one profile model for every retriever (max vs mean over past wins)
+Context: SPEC §6.6 compares a centroid and a max-similarity profile for dense retrieval.
+Decision: every retriever returns a (past wins × candidates) similarity matrix; `max` takes the
+best past win, `mean` the average. For cosine similarity, ranking by the mean of the rows equals
+ranking by similarity to the normalized centroid, so `mean` *is* the centroid strategy. BM25 uses
+the same two strategies. The variant per family is chosen on the tuning split (best Recall@20)
+and the choice is printed in the report.
+Alternatives considered: a concatenated BM25 query (long queries are dominated by frequent
+terms; also a separate code path).
+Evidence: `src/avant_offre/search/hybrid.py`, `tests/test_backtest_matching.py`.
+Revisit if: a third strategy (e.g. top-3 mean) wins clearly on tuning.
+
+### 2026-10-15 — M2: in-house light French stemmer instead of a Snowball dependency
+Context: bm25s' usual stemmer comes from PyStemmer, outside the approved dependency list.
+Decision: tokenizer = lowercase, strip accents, French + procurement stopwords ("lot", "marché",
+"accord-cadre", "prestations"…), drop digits and "n°" numbering, then a light stemmer (plurals,
+-aux → -al, -eaux → -eau, silent final e). About 20 lines, unit-tested.
+Alternatives considered: PyStemmer/Snowball (needs approval; heavier stemming also merges
+unrelated words in short titles).
+Evidence: `tests/test_bm25.py`.
+Revisit if: BM25 underperforms on the tuning split and a Snowball run (after approval) shows a
+gain.
+
+### 2026-10-15 — M2: the CPV alert baseline is newest-first among CPV-group matches
+Context: SPEC §7.2 defines the baseline as "how a classic alert feed behaves".
+Decision: candidates whose CPV group (first 3 digits, `search.cpv_group_digits`) matches any past
+win, ordered by notification date, newest first; non-matching candidates are never shown (an
+alert feed does not show them), so they count as misses.
+Alternatives considered: appending non-matching candidates after the matches (no alert feed
+does this).
+Evidence: `tests/test_backtest_matching.py::test_cpv_alert_only_returns_matching_groups`.
+Revisit if: bid offices in the pilot use another alert rule (e.g. 4-digit classes).
+
 ### 2026-10-15 — M1: the company key is the SIREN, not the SIRET
 Context: DECP identifies winners by establishment (SIRET). A company winning through two
 establishments would count as two competitors, and opening a new establishment would make it

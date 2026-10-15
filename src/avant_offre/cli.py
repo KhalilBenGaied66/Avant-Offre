@@ -66,3 +66,26 @@ def quality() -> None:
     with db.session() as conn:
         path = q.write(conn)
     console.print(f"wrote {path}")
+
+
+eval_app = typer.Typer(no_args_is_help=True, help="Backtests on real award outcomes (SPEC §7).")
+app.add_typer(eval_app, name="eval")
+
+
+@eval_app.command("matching-baselines")
+def eval_matching_baselines() -> None:
+    """M2: CPV alert and BM25 baselines -> reports/matching_baselines.md."""
+    from avant_offre.eval import backtest_matching
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        _require_awards(conn)
+        out = backtest_matching.run_baselines(conn)
+    console.print_json(json.dumps(out, default=str))
+
+
+def _require_awards(conn: object) -> None:
+    from avant_offre.store import db
+
+    if not db.table_exists(conn, "awards"):  # type: ignore[arg-type]
+        _fail("no awards in the store: run `make data-sample` first. No report was written.")
