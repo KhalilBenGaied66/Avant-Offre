@@ -1,12 +1,19 @@
 # Model ids are configuration, not code (SPEC §8.1).
-# Check the provider's current model list and LiteLLM naming before running; the gateway
-# fails loudly if a model id is rejected.
+# Ids and prices from Anthropic's published model table (as of 2026-10-06). Not yet verified
+# against the live API: no key in the build environment.
+# Sonnet 5.5 and Haiku 5.5 reject non-default temperature (HTTP 400), so it is left unset, and
+# both run adaptive thinking by default: thinking tokens count against max_tokens, hence the
+# headroom over a 250-word brief. The gateway fails loudly if a model id is rejected.
 gateway: litellm
 tasks:
-  brief_writer:   {model: "anthropic/claude-sonnet-5-5", max_tokens: 900, temperature: 0.2}
-  fact_extractor: {model: "anthropic/claude-haiku-5-5",  max_tokens: 600, temperature: 0}
+  brief_writer:   {model: "anthropic/claude-sonnet-5-5", max_tokens: 4000}
+  fact_extractor: {model: "anthropic/claude-haiku-5-5",  max_tokens: 2000}
 alternatives:     # compared in 7.6 when keys are available
   - "mistral/mistral-large-latest"
+# USD per million tokens, used for the cost estimate in traces (provider list prices, 2026-10).
+prices_per_mtok:
+  "anthropic/claude-sonnet-5-5": {input: 2.00, output: 10.00}
+  "anthropic/claude-haiku-5-5":  {input: 0.10, output: 0.50}
 embeddings:
   default: "intfloat/multilingual-e5-small"   # replaced by the 7.5 winner
   candidates:

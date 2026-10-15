@@ -34,8 +34,9 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - `make quality` regenerate `docs/DATA_QUALITY.md`
 - `make index-sample` / `make index-full` BM25 + vectors
 - `make eval-sample` / `make eval-full` all backtests → `reports/`
-  (single backtest: `uv run avant-offre eval matching-baselines | matching | embed`)
-- `uv run avant-offre index [--dense]` · `uv run avant-offre match --siret <s>` live ranking
+- `uv run avant-offre index [--dense]` · `match --siret <s>` · `intel --notice <id>` ·
+  `score --notice <id> --siret <s>` · `brief --notice <id> --siret <s>` · `extract`
+- single backtests: `uv run avant-offre eval matching-baselines|matching|embed|competitors|prices|briefs|summary`
 - `make serve` FastAPI on :8000 · `make mcp` MCP server · `make web` React dev server
 
 ## Conventions

@@ -155,6 +155,8 @@ class IntelConfig(BaseModel):
     left_censor_months: int = 12
     top_competitors: int = 10
     references_similarity: float = 0.5
+    min_price_n: int = 5
+    display_comparables: int = 20
 
 
 class EvalConfig(BaseModel):
@@ -171,6 +173,7 @@ class EvalConfig(BaseModel):
     embed_tolerance: float = 0.01
     brief_sample_size: int = 50
     brief_review_samples: int = 10
+    max_test_awards: int = 5000
 
 
 class BriefConfig(BaseModel):
@@ -290,7 +293,12 @@ class ScorecardConfig(BaseModel):
 class TaskModel(BaseModel):
     model: str
     max_tokens: int
-    temperature: float = 0.0
+    temperature: float | None = None  # None: provider default (some models reject others)
+
+
+class Price(BaseModel):
+    input: float
+    output: float
 
 
 class EmbeddingsConfig(BaseModel):
@@ -307,6 +315,7 @@ class ModelsConfig(BaseModel):
     gateway: str
     tasks: dict[str, TaskModel]
     alternatives: list[str] = Field(default_factory=list)
+    prices_per_mtok: dict[str, Price] = Field(default_factory=dict)
     embeddings: EmbeddingsConfig
     reranker: str
     llm_extraction_enabled: bool = True

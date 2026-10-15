@@ -65,6 +65,7 @@ src = ["src", "tests", "scripts"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "S", "PTH", "PL"]
 ignore = [
     "PLR0913",  # many-argument functions are fine for explicit pure functions
+    "PLR0917",  # idem for positional arguments
     "PLR2004",  # magic values in comparisons: thresholds live in config, literals here are formats
     "S101",     # assert is used in tests
     "RUF001", "RUF002", "RUF003",  # French text legitimately contains ambiguous unicode (’, «, »)
@@ -82,6 +83,8 @@ max-branches = 15
 # and bind every user value as a parameter.
 "src/avant_offre/{ingest,transform,eval}/**" = ["S608"]
 "src/avant_offre/quality.py" = ["S608"]
+# The brief template is French prose: its lines are content, not code.
+"src/avant_offre/brief/template.py" = ["E501"]
 # CLI commands import their module lazily to keep `avant-offre --help` fast.
 "src/avant_offre/cli.py" = ["PLC0415"]
 
