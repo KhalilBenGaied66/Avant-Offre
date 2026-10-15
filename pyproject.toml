@@ -68,11 +68,22 @@ ignore = [
     "PLR2004",  # magic values in comparisons: thresholds live in config, literals here are formats
     "S101",     # assert is used in tests
     "RUF001", "RUF002", "RUF003",  # French text legitimately contains ambiguous unicode (’, «, »)
+    "S311",     # seeded `random` is used for reproducible sampling, never for security
 ]
+
+[tool.ruff.lint.pylint]
+max-branches = 15
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "PLR", "N802"]
 "scripts/**" = ["T201"]
+# Batch data code composes SQL from config values, file paths and internal table names, never
+# from request input. Request-facing modules (api/, agent/, search/, intel/) keep S608 active
+# and bind every user value as a parameter.
+"src/avant_offre/{ingest,transform,eval}/**" = ["S608"]
+"src/avant_offre/quality.py" = ["S608"]
+# CLI commands import their module lazily to keep `avant-offre --help` fast.
+"src/avant_offre/cli.py" = ["PLC0415"]
 
 [tool.mypy]
 python_version = "3.12"

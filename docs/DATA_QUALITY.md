@@ -5,6 +5,10 @@ rewritten by `make quality` from the DuckDB store. Numbers only ever come from t
 section.
 
 ## Changelog
+- 2026-10-15 (M1) — Pipeline built and tested on fixtures (`tests/`): DECP normalization,
+  entity resolution, SIRENE legal category, first wins over the full file, privacy-safe names,
+  BOAMP tenders with eForms facts, notice dedup, and this report's generator. `make data-sample`
+  stops at the first download (host blocked), so the generated section below is empty.
 - 2026-10-15 (M0) — No data downloaded: every open-data host is blocked by the cloud
   environment's network policy (`reports/check_sources.md`). DECP field names below come from
   the publisher's schema file, not from a downloaded sample.
@@ -118,6 +122,16 @@ The Opendatasoft host is blocked here. The BOAMP field mapping lives in
 stops the run and prints the observed fields.
 
 <!-- GENERATED:START -->
-_Not generated yet: `make data-sample quality` has not run (data hosts blocked, see
-`reports/check_sources.md`)._
+_Generated 2026-10-15T20:33:34+00:00 · mode `sample` · git `47735c8e08-dirty` · config `ff0bf51065e4` · data snapshot `none` · seed `20261015`_
+
+### Sources
+
+_Manifest is empty._
+
+_No awards in the store: run `make data-sample` first._
+
+### BOAMP tenders
+
+_No BOAMP pull in the store._
+
 <!-- GENERATED:END -->
