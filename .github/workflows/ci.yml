@@ -24,7 +24,6 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('web/package.json') != '' }}
     defaults:
       run:
         working-directory: web
@@ -36,5 +35,5 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - run: npm run lint --if-present
+      - run: npm run lint
       - run: npm run build
