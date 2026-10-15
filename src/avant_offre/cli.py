@@ -373,3 +373,37 @@ def digest(
         console.print(f"wrote {target}/digest.json, card.json, digest.html")
     else:
         console.print_json(d.model_dump_json())
+
+
+@app.command("demo-export")
+def demo_export(
+    siret: list[str] = typer.Option(..., help="Company SIRET/SIREN (repeatable)."),
+    out: str = typer.Option("demo", help="Snapshot directory."),
+) -> None:
+    """Export a pseudonymized demo snapshot of the store around a few companies."""
+    from pathlib import Path
+
+    from avant_offre import demo
+    from avant_offre.search import profile
+    from avant_offre.store import db
+
+    with db.session(read_only=True) as conn:
+        keys = [k for s in siret if (k := profile.company_key_for(conn, s))]
+        if not keys:
+            _fail("none of these companies has an award in the store")
+        console.print_json(json.dumps(demo.export(conn, Path(out), keys)))
+
+
+@app.command("demo-load")
+def demo_load(snapshot: str = typer.Argument("demo", help="Snapshot directory.")) -> None:
+    """Build data/avant_offre.duckdb from a demo snapshot (no download needed)."""
+    from pathlib import Path
+
+    from avant_offre import demo
+    from avant_offre.intel import comparables
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        counts = demo.load(Path(snapshot), conn)
+        comparables.save_awards_index(conn)
+    console.print_json(json.dumps(counts))

@@ -4,6 +4,10 @@ Every number lives in `reports/` and is produced by `make eval-sample` / `make e
 This file only records what was run, when, and what it changed.
 
 ## Changelog
+- 2026-10-15 (M6) — Packaging: French README, HANDOFF, demo script, pseudonymized demo
+  snapshot export/load, `reports/README.md` listing every report and its status. CI repaired
+  (workflow was rejected by GitHub since M0). Still no evaluation run: first step for the next
+  session with network access is `make data-sample quality index-sample eval-sample`.
 - 2026-10-15 (M5) — Interfaces: FastAPI (8 endpoints of SPEC §8.2 + `/awards` for source
   links + HTML digest), MCP server (8 read-only tools, stdio + streamable HTTP), weekly digest
   with Adaptive Card 1.4, React review page. Checked by tests (API, card, MCP client session)

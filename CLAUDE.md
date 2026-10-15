@@ -28,7 +28,8 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
    bids or writes to external systems.
 
 ## Commands (keep this list current)
-- `make setup` install deps (uv) · `make lint` ruff + mypy · `make test` pytest
+- `make setup` install deps (uv) · `make lint` ruff + mypy · `make test` pytest ·
+  `make lint-workflows` actionlint on CI files
 - `make check-sources` reachability of every data source
 - `make data-sample` / `make data-full` ingest + normalize
 - `make quality` regenerate `docs/DATA_QUALITY.md`
@@ -39,6 +40,7 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - single backtests: `uv run avant-offre eval matching-baselines|matching|embed|competitors|prices|briefs|summary`
 - `make serve` FastAPI on :8000 · `make mcp` MCP server (stdio; `make mcp-http` for HTTP) ·
   `make web-install web` React review page on :5173 · `uv run avant-offre digest --siret <s>`
+- `uv run avant-offre demo-export --siret <s> --out demo/` · `demo-load demo/` pseudonymized snapshot
 
 ## Conventions
 - Python 3.12, uv, type hints everywhere, ruff, mypy (strict on `src/`), pytest.

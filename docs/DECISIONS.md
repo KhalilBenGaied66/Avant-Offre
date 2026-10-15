@@ -70,6 +70,51 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M6: the README states plainly that no result is published yet
+Context: SPEC §11 asks for "Résultats mesurés" copied from `reports/SUMMARY.md`; no evaluation
+could run in the build environment.
+Decision: the French README opens with the project's status, lists each report and the question
+it answers, and says that nothing was estimated in place of a run. `reports/README.md` lists
+every generated report and whether it exists. HANDOFF cost figures are labelled as orders of
+magnitude with their formula, to be replaced by the token traces of a real run.
+Alternatives considered: illustrative numbers "for the demo" (forbidden by CLAUDE.md rules 3–4,
+and indistinguishable from findings for a reader).
+Evidence: `README.md`, `reports/README.md`, `docs/HANDOFF.md` § 3.
+Revisit if: `make eval-sample` has run: copy its tables into the README with their caveats.
+
+### 2026-10-15 — M6: demo snapshot = real public data, pseudonymized, loadable offline
+Context: SPEC §10 (M6) asks for a demo snapshot with pseudonymized data; a reviewer should be
+able to run the UI without downloading 250 MB.
+Decision: `avant-offre demo-export --siret … --out demo/` keeps the awards in the companies'
+CPV divisions and departments plus the open tenders; winner names come only from
+`company_names`; SIRET, legal category, creation dates and raw identifiers are dropped;
+provenance is copied from the manifest. `avant-offre demo-load demo/` rebuilds a store from it.
+Fixtures (fictitious) are never used as demo data.
+Alternatives considered: committing the full DuckDB file (size, and raw names of sole traders).
+Evidence: `tests/test_demo.py` (no sole-trader name in any exported file, round trip works).
+Revisit if: the snapshot is published outside the team (then review it with the DPO first).
+
+### 2026-10-15 — M6: CI was silently broken for five commits; workflows are now linted
+Context: every CI run from M0 to M5 failed before any job started: `hashFiles()` is not allowed
+in a job-level `if`, and GitHub rejects the whole file. Local `make lint test` was green, so the
+failure was invisible until the run list was checked.
+Decision: fixed the workflow (the web job always runs); `make lint-workflows` runs actionlint,
+which reports this exact error on the old file and nothing on the new one. Checking the CI run
+after each push is part of finishing a milestone.
+Alternatives considered: none; a red CI on a portfolio repository is a defect.
+Evidence: run 7 (`f33ecdb`) green on both jobs after six failed runs.
+Revisit if: never.
+
+### 2026-10-15 — M6: French for the reader-facing documents, English for engineering docs
+Context: the README must be French (SPEC §11); SPEC, DECISIONS and code are English.
+Decision: README, HANDOFF (IT, security, DPO of a French company) and the demo script are in
+French; SPEC, DECISIONS, DATA_QUALITY, EVALUATION, MCP and POWER_AUTOMATE stay in English, like
+the code. The review page and the briefs are French.
+Alternatives considered: everything in French (would mix languages inside the engineering docs
+split from the brief).
+Evidence: `docs/`.
+Revisit if: the client asks for a single language.
+
 ### 2026-10-15 — M5: services read the analytic store read-only; app writes go to app.duckdb
 Context: the API, the MCP server (a separate process launched by Claude Desktop) and the CLI all
 need the store. DuckDB allows many read-only processes or a single writer.
