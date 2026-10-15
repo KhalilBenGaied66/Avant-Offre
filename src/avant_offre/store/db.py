@@ -79,8 +79,12 @@ def connect(path: Path | None = None, *, read_only: bool = False) -> duckdb.Duck
         path.parent.mkdir(parents=True, exist_ok=True)
     conn = duckdb.connect(str(path), read_only=read_only)
     if not read_only:
-        conn.execute(APP_TABLES_DDL)
+        ensure_app_tables(conn)
     return conn
+
+
+def ensure_app_tables(conn: duckdb.DuckDBPyConnection) -> None:
+    conn.execute(APP_TABLES_DDL)
 
 
 @contextmanager
