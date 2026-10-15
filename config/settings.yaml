@@ -122,4 +122,7 @@ brief:
   max_removed: 2
 
 api:
-  key_header: "X-API-Key"
+  key_header: "X-API-Key"     # value from the AVANT_OFFRE_API_KEY environment variable
+  cors_origins: ["http://localhost:5173"]
+  public_base_url: "http://localhost:5173"
+  digest_top: 10

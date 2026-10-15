@@ -14,7 +14,7 @@ import duckdb
 
 from avant_offre.runinfo import git_commit, provenance_header, snapshot_date
 from avant_offre.settings import config_hash, get_settings
-from avant_offre.store.db import ensure_app_tables
+from avant_offre.store.db import ensure_eval_tables
 
 CAVEAT_WINS = (
     "DECP records wins, not lost bids: a tender the company bid on and lost counts as "
@@ -69,7 +69,7 @@ def record_run(
 ) -> str:
     s = get_settings()
     run_id = uuid.uuid4().hex[:12]
-    ensure_app_tables(conn)
+    ensure_eval_tables(conn)
     conn.execute(
         "INSERT INTO eval_runs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [

@@ -37,7 +37,8 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - `uv run avant-offre index [--dense]` · `match --siret <s>` · `intel --notice <id>` ·
   `score --notice <id> --siret <s>` · `brief --notice <id> --siret <s>` · `extract`
 - single backtests: `uv run avant-offre eval matching-baselines|matching|embed|competitors|prices|briefs|summary`
-- `make serve` FastAPI on :8000 · `make mcp` MCP server · `make web` React dev server
+- `make serve` FastAPI on :8000 · `make mcp` MCP server (stdio; `make mcp-http` for HTTP) ·
+  `make web-install web` React review page on :5173 · `uv run avant-offre digest --siret <s>`
 
 ## Conventions
 - Python 3.12, uv, type hints everywhere, ruff, mypy (strict on `src/`), pytest.

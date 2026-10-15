@@ -1,10 +1,15 @@
 # Avant-Offre — every command runs in sample mode on a small VM (SPEC §4.7).
+# Secrets (API keys) come from .env when present; it is never committed.
+-include .env
+export
+
 UV  ?= uv
 RUN := $(UV) run
 CLI := $(RUN) avant-offre
 
 .PHONY: setup setup-full lint format test check-sources data-sample data-full quality \
-        index-sample index-full eval-sample eval-full serve mcp mcp-http web web-build ci
+        index-sample index-full eval-sample eval-full serve mcp mcp-http web web-install \
+        web-build ci
 
 setup:            ## install core + dev deps (no model runtime)
 	$(UV) sync --extra llm
@@ -57,7 +62,10 @@ mcp:
 mcp-http:
 	$(CLI) mcp --transport http
 
-web:
+web-install:
+	cd web && npm ci
+
+web:                ## review page on :5173; the dev proxy adds the API key to /api calls
 	cd web && npm run dev
 
 web-build:

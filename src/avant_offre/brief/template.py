@@ -17,7 +17,7 @@ TEMPLATE = """\
 
 ## Pourquoi
 {%- if f.fit %}
-- Adéquation au profil : {{ f.fit.display }} des avis de la semaine font moins bien [{{ f.fit.id }}].
+- Adéquation au profil : mieux classé que {{ f.fit.display }} des autres avis de la semaine [{{ f.fit.id }}].
 {%- endif %}
 {%- if f.closest_win %}
 - Contrat passé le plus proche : {{ f.closest_win.display }} [{{ f.closest_win.id }}].

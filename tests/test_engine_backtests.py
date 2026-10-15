@@ -56,14 +56,15 @@ def test_intel_values_carry_n_and_sources(store: duckdb.DuckDBPyConnection) -> N
 
 
 def test_brief_without_llm_is_the_verified_template(store: duckdb.DuckDBPyConnection) -> None:
-    engine = Engine(store, TODAY)
+    app = duckdb.connect(":memory:")
+    engine = Engine(store, TODAY, app_conn=app)
     alpha = store.execute(
         "SELECT company_key FROM company_names WHERE display_name = 'ALPHA INFORMATIQUE'"
     ).fetchone()
     assert alpha is not None
     b, facts = engine.brief("T1", engine.profile(siret=alpha[0]))
     assert b.fallback and "## Recommandation" in b.text and facts.band in b.text
-    assert store.execute("SELECT count(*) FROM briefs WHERE fallback").fetchone() == (1,)
+    assert app.execute("SELECT count(*) FROM briefs WHERE fallback").fetchone() == (1,)
 
 
 def test_competitor_and_price_backtests_write_reports(store: duckdb.DuckDBPyConnection) -> None:

@@ -165,7 +165,7 @@ def _match_facts(bf: BriefFacts, match: Match, notice_id: str) -> None:
     pct = 100 * match.fit_percentile
     bf.add(
         "fit",
-        "Adéquation au profil (percentile parmi les avis de la semaine)",
+        "Adéquation : part des autres avis de la semaine moins bien classés",
         "%",
         pct,
         fr_pct(pct),

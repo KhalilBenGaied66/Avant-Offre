@@ -70,6 +70,71 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M5: services read the analytic store read-only; app writes go to app.duckdb
+Context: the API, the MCP server (a separate process launched by Claude Desktop) and the CLI all
+need the store. DuckDB allows many read-only processes or a single writer.
+Decision: `data/avant_offre.duckdb` is built by batch jobs and opened read-only by every
+service; feedback and stored briefs go to `data/app.duckdb`, written by the API only. The MCP
+server never writes (its `bid_brief` is not stored).
+Alternatives considered: one read-write file (the MCP server could not start while the API
+runs); Postgres (a server to operate for a one-team tool).
+Evidence: `src/avant_offre/store/db.py`, `tests/test_interfaces.py`.
+Revisit if: several teams use it concurrently (then Postgres or MotherDuck, see HANDOFF).
+
+### 2026-10-15 — M5: the API key never reaches the browser
+Context: SPEC §8.2 asks for a single API key; the review page has no login (SPEC §8.3).
+Decision: the React app calls `/api/...` without a key; the Vite dev proxy (and, in production,
+the reverse proxy behind the company SSO) adds `X-API-Key`. The API compares keys in constant
+time and refuses to serve if no key is configured; `/health` stays open.
+Alternatives considered: a `VITE_API_KEY` build variable (the key would ship in the JS bundle).
+Evidence: `web/vite.config.ts`, `src/avant_offre/api/app.py::require_key`.
+Revisit if: per-user access rights are needed (then SSO tokens, not a shared key).
+
+### 2026-10-15 — M5: one request at a time in the API
+Context: DuckDB connections are not shared across threads; the expected load is one bid office.
+Decision: a process-wide lock serializes requests; the comparables index and competitor model
+are cached for the day. Measured on the fixture store, a full shortlist + intel + score round
+trip is well under a second; real-data latency will be measured after `make data-sample`.
+Alternatives considered: a connection pool with per-thread cursors (more code for a load that
+does not need it).
+Evidence: `src/avant_offre/api/app.py::engine_scope`.
+Revisit if: p95 latency exceeds 2 s with real users (HANDOFF lists the scale-out steps).
+
+### 2026-10-15 — M5: Adaptive Card 1.4 validated by strict typed models
+Context: SPEC §6.12 requires the payload to validate against the card schema version used; the
+official JSON schema host is not reachable from this environment and `jsonschema` is not an
+approved dependency.
+Decision: card version 1.4 (rendered by every Teams client, accepted by Power Automate's "Post
+card in a chat or channel"); the elements used (TextBlock, FactSet, ColumnSet, Column,
+Container, Action.OpenUrl) are pydantic models with `extra="forbid"` and the schema's enums.
+Every generated card is validated in tests, and its Teams envelope is checked under 28 KB.
+Alternatives considered: building raw dicts (typos in property names fail silently in Teams).
+Evidence: `tests/test_interfaces.py::test_digest_payload_and_card`,
+`test_card_model_rejects_invalid_properties`.
+Revisit if: the card needs elements outside this subset (add their models first).
+
+### 2026-10-15 — M5: no-premium digest delivery inverts the direction
+Context: Power Automate's HTTP connector is premium; CLAUDE.md rule 7 forbids Avant-Offre writing
+to external systems.
+Decision: Flow A (premium) pulls `/digest/{siret}/weekly`. Flow B (standard connectors only):
+`avant-offre digest --out <folder>` writes card.json and digest.html locally on a schedule; IT
+syncs that folder to Microsoft 365 and a file-created trigger posts the card and the email.
+Avant-Offre writes nothing outside its host in either flow.
+Alternatives considered: the API writing to a SharePoint list (a write to an external system).
+Evidence: `docs/POWER_AUTOMATE.md`.
+Revisit if: IT prefers a Teams Workflows webhook (the `teams_message` envelope is ready).
+
+### 2026-10-15 — M5: Vite 8 for the review page, no UI framework
+Context: the Vite 5 line pinned at first carried npm audit advisories (esbuild dev-server issue
+and one high).
+Decision: Vite 8.3.4 + @vitejs/plugin-react 6.1.2 (0 vulnerabilities at install), React 18.3,
+TypeScript strict, a 20-line hash router and plain CSS; exact versions pinned in
+`web/package.json` and the lock file. Checked in Chromium with Playwright on the fixture store:
+both screens, sources dialog, citations, brief and feedback.
+Alternatives considered: a component library (weight and upgrades for two screens).
+Evidence: `npm audit` output at install; CI `web` job builds it.
+Revisit if: the UI grows beyond two screens.
+
 ### 2026-10-15 — M4: LLM call settings follow the models' current API, not habit
 Context: Claude Sonnet 5.5 and Haiku 5.5 reject a non-default `temperature` (HTTP 400) and run
 adaptive thinking by default; thinking tokens count against `max_tokens`, so the brief's
