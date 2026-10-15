@@ -1,0 +1,22 @@
+# Model ids are configuration, not code (SPEC §8.1).
+# Check the provider's current model list and LiteLLM naming before running; the gateway
+# fails loudly if a model id is rejected.
+gateway: litellm
+tasks:
+  brief_writer:   {model: "anthropic/claude-sonnet-5-5", max_tokens: 900, temperature: 0.2}
+  fact_extractor: {model: "anthropic/claude-haiku-5-5",  max_tokens: 600, temperature: 0}
+alternatives:     # compared in 7.6 when keys are available
+  - "mistral/mistral-large-latest"
+embeddings:
+  default: "intfloat/multilingual-e5-small"   # replaced by the 7.5 winner
+  candidates:
+    - "intfloat/multilingual-e5-small"
+    - "intfloat/multilingual-e5-base"
+    - "BAAI/bge-m3"
+  prefixes:   # query/passage prefixes required by each model family
+    "intfloat/multilingual-e5-small": {query: "query: ", passage: "passage: "}
+    "intfloat/multilingual-e5-base":  {query: "query: ", passage: "passage: "}
+    "BAAI/bge-m3":                    {query: "", passage: ""}
+  batch_size: 64
+reranker: "BAAI/bge-reranker-v2-m3"
+llm_extraction_enabled: true   # disabled by config if eForms coverage makes it useless (SPEC §6.4)

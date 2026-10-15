@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Data (never committed; see data/manifest.json for provenance)
+data/
+
+# Secrets
+.env
+
+# Web
+web/node_modules/
+web/dist/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
