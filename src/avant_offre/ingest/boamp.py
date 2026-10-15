@@ -157,23 +157,26 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
                 json.dumps(parsed.get("lots") or [], ensure_ascii=False),
                 json.dumps(parsed.get("award_criteria") or [], ensure_ascii=False),
                 parsed.get("contract_folder_id"),
+                parsed.get("buyer_siret"),
                 _as_text(r.get(f.get("url", ""))),
                 json.dumps(r, ensure_ascii=False, default=str),
             )
         )
     register_macros(conn)
+    _buyer_names(conn)
     conn.execute(
         """
         CREATE OR REPLACE TEMP TABLE tenders_staging (
             notice_id VARCHAR, source VARCHAR, buyer_name VARCHAR, objet VARCHAR,
             published_raw VARCHAR, deadline_raw VARCHAR, dept_raw VARCHAR, cpv VARCHAR,
             procedure VARCHAR, estimated_value_eur DOUBLE, lots_json VARCHAR,
-            criteria_json VARCHAR, folder_id VARCHAR, url VARCHAR, raw_json VARCHAR)
+            criteria_json VARCHAR, folder_id VARCHAR, buyer_siret VARCHAR, url VARCHAR,
+            raw_json VARCHAR)
         """
     )
     if staging:
         conn.executemany(
-            "INSERT INTO tenders_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO tenders_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             staging,
         )
     conn.execute(
@@ -185,8 +188,13 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
                ao_dept_from_dept(dept_raw) AS dept,
                cpv, substr(cpv, 1, 2) AS cpv_division, procedure, estimated_value_eur,
                lots_json, criteria_json, folder_id, url, raw_json,
+               coalesce(t.buyer_siret, b.buyer_siret) AS buyer_siret,
+               CASE WHEN t.buyer_siret IS NOT NULL THEN 'eforms'
+                    WHEN b.buyer_siret IS NOT NULL THEN 'name_match' ELSE 'none' END
+                   AS buyer_siret_source,
                CAST(NULL AS VARCHAR) AS duplicate_of, CAST(NULL AS VARCHAR) AS dedup_reason
-        FROM tenders_staging
+        FROM tenders_staging t
+        LEFT JOIN buyer_names b ON b.name_key = lower(trim(t.buyer_name))
         """
     )
     conn.execute(
@@ -199,6 +207,25 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
     if facts_rows:
         conn.executemany("INSERT INTO tender_facts VALUES (?, ?, ?, ?, ?, ?)", facts_rows)
     return {"tenders": len(staging), "tender_facts": len(facts_rows)}
+
+
+def _buyer_names(conn: duckdb.DuckDBPyConnection) -> None:
+    """Buyer name -> SIRET, only when the name maps to a single SIRET in DECP."""
+    if conn.execute(
+        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'awards'"
+    ).fetchone() == (0,):
+        conn.execute(
+            "CREATE OR REPLACE TEMP TABLE buyer_names (name_key VARCHAR, buyer_siret VARCHAR)"
+        )
+        return
+    conn.execute(
+        """
+        CREATE OR REPLACE TEMP TABLE buyer_names AS
+        SELECT lower(trim(buyer_name)) AS name_key, any_value(buyer_siret) AS buyer_siret
+        FROM awards WHERE buyer_name IS NOT NULL AND buyer_siret IS NOT NULL
+        GROUP BY 1 HAVING count(DISTINCT buyer_siret) = 1
+        """
+    )
 
 
 def latest_pulls() -> list[Path]:

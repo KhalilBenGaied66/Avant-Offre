@@ -70,6 +70,89 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M4: LLM call settings follow the models' current API, not habit
+Context: Claude Sonnet 5.5 and Haiku 5.5 reject a non-default `temperature` (HTTP 400) and run
+adaptive thinking by default; thinking tokens count against `max_tokens`, so the brief's
+original `max_tokens: 900, temperature: 0.2` would fail or truncate.
+Decision: `temperature` is unset (provider default); `max_tokens` is 4,000 for the writer and
+2,000 for the extractor, while the word limit stays in the prompt and the verifier. Any stop
+other than a normal end of turn (truncation, refusal) falls back to the template and is traced.
+Costs are estimated from `prices_per_mtok` in `config/models.yaml` (list prices, 2026-10).
+LiteLLM stays the gateway (CLAUDE.md: providers must be swappable); a rejected model id raises.
+Alternatives considered: the Anthropic SDK directly (simpler access to new API features, but
+the Mistral comparison of SPEC §7.6 needs a gateway).
+Evidence: `src/avant_offre/llm/gateway.py`, `tests/test_brief.py`.
+Revisit if: the brief eval shows truncations or refusals (then lower thinking effort through
+the gateway, or raise `max_tokens`).
+
+### 2026-10-15 — M4: what the verifier accepts as "the same number"
+Context: the LLM may write 245 000 €, 245 k€ or 0,25 M€ for a fact computed as 245 318 €.
+Decision: a number passes if it is (a) the number in the cited fact's display, or (b) equal to
+the cited fact's value within half a unit of the precision written in the brief (so 0,25 M€
+passes, 0,24 M€ and 300 000 € fail), or (c) a plain number or date printed inside a cited text
+fact (competitor name, closest past contract). Kinds must agree (€ vs % vs date vs plain).
+Percentile labels (P25…) and citations are not numbers; titles in « » are not split into
+sentences. The template is tested to always pass.
+Alternatives considered: exact string match only (rejects correct roundings); tolerance in % of
+the value (accepts a wrong number when the fact is large).
+Evidence: `tests/test_brief.py::test_sentence_checks` (15 cases).
+Revisit if: manual review of `reports/brief_samples.md` finds a wrong number that passed.
+
+### 2026-10-15 — M4: the LLM extractor reads text facts only
+Context: SPEC §6.4 allows an LLM fallback for facts present only in free text; DECISIONS rule 1
+and rule 2 forbid an LLM producing a fact that a structured field holds or any number.
+Decision: the extractor only asks for `qualifications` and `award_criteria` (as written), only
+when eForms lacks them, validates JSON with pydantic, and keeps a fact only if its quote is found
+verbatim (whitespace-normalized) in the notice text. Amounts, dates and durations come from
+eForms or stay missing. The quality report shows coverage per fact by source.
+Alternatives considered: extracting amounts and deadlines from prose (numbers produced by a
+model, against rule 2).
+Evidence: `tests/test_llm_extract.py`.
+Revisit if: eForms coverage of these two facts is high: then disable the path in models.yaml.
+
+### 2026-10-15 — M4: scorecard inputs, defined once
+Context: SPEC §6.8 names the criteria; their inputs needed exact definitions.
+Decision: `fit` = rank-based percentile among the week's eligible tenders; `references` = the
+company's wins among the tender's comparables with normalized similarity ≥ 0.5 (3 or more = 1);
+`incumbent_risk` = 1 − share of the buyer's comparables won by its top winner; `openness` =
+newcomer share; `price_realism` = 1 inside [P25, P75], linear decay in log space to 0 at 4×
+outside; `deadline` = days left / 30, capped. Missing inputs leave the denominator and are
+listed; hard stops force NO-GO with their reason.
+Alternatives considered: imputing missing criteria with a neutral 0.5 (hides missing data from
+the committee).
+Evidence: `tests/test_intel_score.py`.
+Revisit if: the bid team changes a definition (their file: `config/scorecard.yaml`).
+
+### 2026-10-15 — M4: market statistics definitions
+Context: SPEC §6.7 lists the statistics; each needed a precise, testable definition.
+Decision: newcomer share = share of comparables whose winner's first DECP win is that award,
+excluding the first 12 months of the data window; SME share = share of comparables with at
+least one PME winner among those with a known size; bids received = median of offresRecues > 0;
+price range = P10–P90 over comparables that are not frameworks, not `aberrant`, amount > 0, with
+at least 5 of them. The competitor backtest unit is the (award, winner) pair, and its
+calibration uses the same newcomer definition as the prediction.
+Alternatives considered: counting winners instead of awards for the SME share (multi-winner
+awards would weigh more).
+Evidence: `tests/test_intel_score.py`, `tests/test_engine_backtests.py`.
+Revisit if: the competitor report shows first-time winners dominate (DECISIONS step 7).
+
+### 2026-10-15 — M4: live tenders get a buyer SIRET from eForms, else from a unique name
+Context: BOAMP gives the buyer name; the same-buyer boost and incumbent flags need the SIRET.
+Decision: take the eForms contracting party identifier when it is a 14-digit SIRET; otherwise
+use the DECP buyer whose exact (case-insensitive) name maps to a single SIRET; else none.
+`tenders.buyer_siret_source` records which.
+Alternatives considered: fuzzy buyer-name matching (a wrong buyer would fake incumbency).
+Evidence: `src/avant_offre/ingest/boamp.py::_buyer_names`.
+Revisit if: the share of `none` is high in the quality report.
+
+### 2026-10-15 — M4: the brief evaluation never counts template briefs
+Context: without an API key every brief is the template, which passes the verifier by design.
+Decision: `eval briefs` writes "Not run" and no number when no model is available; template
+fallbacks caused by an unavailable LLM are excluded from the LLM statistics.
+Alternatives considered: reporting the template's 100 % pass rate (true but meaningless).
+Evidence: `tests/test_engine_backtests.py::test_brief_eval_refuses_to_report_without_llm`.
+Revisit if: never.
+
 ### 2026-10-15 — M3: BM25 ships by default until the backtest says otherwise
 Context: DECISIONS rule 6 — an AI step must beat the simplest baseline on the backtest. No
 backtest could run in this environment.

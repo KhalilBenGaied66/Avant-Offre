@@ -4,6 +4,12 @@ Every number lives in `reports/` and is produced by `make eval-sample` / `make e
 This file only records what was run, when, and what it changed.
 
 ## Changelog
+- 2026-10-15 (M4) — Market intelligence (comparables, competitors, newcomer share, price range,
+  SME share, bids), scorecard, brief facts / template / verifier / LLM writer, LLM fact
+  extraction with verbatim quotes. Backtests: competitors (`reports/competitors.md`, reliability
+  plot), prices (`reports/prices.md`), brief faithfulness (`reports/brief_faithfulness.md`,
+  `reports/brief_samples.md`), and `reports/SUMMARY.md`. `make eval-sample` runs them all. Not
+  run here: no data, no model runtime, no API key.
 - 2026-10-15 (M3) — Dense retrieval (sentence-transformers, LanceDB), max vs mean (centroid)
   profiles, RRF hybrid built from the tuning-best variants, cross-encoder reranker, per-method
   latency, mechanical application of the step-6 rule; embedding benchmark (Recall@20, nDCG@20,

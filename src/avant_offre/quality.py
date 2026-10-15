@@ -13,6 +13,7 @@ from typing import Any
 
 import duckdb
 
+from avant_offre.extract import eforms
 from avant_offre.ingest.manifest import Manifest
 from avant_offre.runinfo import provenance_header
 from avant_offre.settings import PROJECT_ROOT
@@ -378,20 +379,19 @@ def section_tenders(conn: duckdb.DuckDBPyConnection) -> list[str]:
             ],
         )
     )
-    out += ["", "eForms fact coverage (share of tenders with the fact, by source):", ""]
-    out.append(
-        table(
-            ["Fact", "Source", "Tenders", "Coverage"],
-            [
-                (f, src, c, pct(c, n_t))
-                for f, src, c in _rows(
-                    conn,
-                    "SELECT fact, source, count(DISTINCT notice_id) FROM tender_facts "
-                    "GROUP BY 1, 2 ORDER BY 1, 2",
-                )
-            ],
+    out += ["", "Fact coverage by source (share of tenders; eForms first, LLM fallback):", ""]
+    by_source = {
+        (f, src): c
+        for f, src, c in _rows(
+            conn,
+            "SELECT fact, source, count(DISTINCT notice_id) FROM tender_facts GROUP BY 1, 2",
         )
-    )
+    }
+    rows = []
+    for fact in eforms.FACTS:
+        e, llm = by_source.get((fact, "eforms"), 0), by_source.get((fact, "llm"), 0)
+        rows.append((fact, pct(e, n_t), pct(llm, n_t), pct(n_t - e - llm, n_t)))
+    out.append(table(["Fact", "eforms", "llm", "missing"], rows))
     out.append("")
     return out
 

@@ -32,6 +32,7 @@ FACTS = (
     "award_criteria",
     "qualifications",
     "contract_folder_id",
+    "buyer_siret",
 )
 
 
@@ -228,5 +229,12 @@ def parse(donnees: str | dict[str, Any] | None) -> EformsFacts:
 
     if folder := path_text(doc, "ContractFolderID"):
         facts["contract_folder_id"] = folder
+
+    party = first(doc, "ContractingParty")
+    for ident in find_all(party, "PartyIdentification") if party is not None else []:
+        value = re.sub(r"\s", "", path_text(ident, "ID") or "")
+        if re.fullmatch(r"\d{14}", value):
+            facts["buyer_siret"] = value
+            break
 
     return EformsFacts(facts)

@@ -10,6 +10,8 @@ import pytest
 
 from avant_offre.eval import backtest_matching as bm
 from avant_offre.eval.splits import LeakageError, assert_before, window
+from avant_offre.intel.comparables import ComparablesIndex
+from avant_offre.intel.competitors import CompetitorModel
 from avant_offre.search.profile import from_company
 from avant_offre.settings import reset_caches
 from tests.helpers import build_store
@@ -70,3 +72,18 @@ def test_guard_raises_on_leak(store: duckdb.DuckDBPyConnection) -> None:
     assert late is not None
     with pytest.raises(LeakageError):
         assert_before(store, [late[0]], t0, "test artifact")
+
+
+def test_comparables_index_and_competitor_history_are_pre_cutoff(
+    store: duckdb.DuckDBPyConnection,
+) -> None:
+    t0 = window().t0
+    index = ComparablesIndex(store, before=t0, use_dense=False)
+    latest = _max_date(store, index.ids)
+    assert latest is not None and latest < t0
+    model = CompetitorModel(store, history_before=t0)
+    latest = _max_date(store, list(model.winners))
+    assert latest is not None and latest < t0
+    # Searching with a reference date after t0 still returns only pre-t0 awards.
+    comps = index.search("Nettoyage des locaux", window().t1)
+    assert comps and all(c.notified_on < t0 for c in comps)

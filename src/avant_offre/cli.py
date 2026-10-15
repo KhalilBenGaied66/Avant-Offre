@@ -108,6 +108,80 @@ def eval_embed() -> None:
     console.print_json(json.dumps(out, default=str))
 
 
+@eval_app.command("competitors")
+def eval_competitors() -> None:
+    """Competitor prediction backtest -> reports/competitors.md."""
+    from avant_offre.eval import backtest_competitors
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        _require_awards(conn)
+        console.print_json(json.dumps(backtest_competitors.run(conn), default=str))
+
+
+@eval_app.command("prices")
+def eval_prices() -> None:
+    """Price range backtest -> reports/prices.md."""
+    from avant_offre.eval import backtest_prices
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        _require_awards(conn)
+        console.print_json(json.dumps(backtest_prices.run(conn), default=str))
+
+
+@eval_app.command("briefs")
+def eval_briefs() -> None:
+    """Brief faithfulness -> reports/brief_faithfulness.md, reports/brief_samples.md."""
+    from avant_offre.eval import brief_faithfulness
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        _require_awards(conn)
+        console.print_json(json.dumps(brief_faithfulness.run(conn), default=str))
+
+
+@eval_app.command("summary")
+def eval_summary() -> None:
+    """reports/SUMMARY.md from the backtest outputs."""
+    from avant_offre.eval import report
+
+    console.print(f"wrote {report.run()}")
+
+
+@eval_app.command("all")
+def eval_all() -> None:
+    """Every backtest, then the summary. Dense methods run only with the model runtime."""
+    import importlib.util
+
+    from avant_offre.eval import (
+        backtest_competitors,
+        backtest_matching,
+        backtest_prices,
+        brief_faithfulness,
+        embed_bench,
+        report,
+    )
+    from avant_offre.store import db
+
+    semantic = importlib.util.find_spec("sentence_transformers") is not None
+    with db.session() as conn:
+        _require_awards(conn)
+        backtest_matching.run_baselines(conn)
+        if semantic:
+            backtest_matching.run_full(conn)
+            embed_bench.run(conn)
+        else:
+            console.print(
+                "[yellow]model runtime absent: dense, hybrid, reranker and the embedding "
+                "benchmark were NOT run (`make setup-full`).[/yellow]"
+            )
+        backtest_competitors.run(conn)
+        backtest_prices.run(conn)
+        brief_faithfulness.run(conn)
+    console.print(f"wrote {report.run()}")
+
+
 def _require_awards(conn: object) -> None:
     from avant_offre.store import db
 
@@ -196,3 +270,62 @@ def match(
         for e in elig:
             if not e.eligible:
                 console.print(f"- {e.notice_id}: {', '.join(e.labels)}")
+
+
+def _engine(conn: object):  # type: ignore[no-untyped-def]
+    from avant_offre.service import Engine
+
+    return Engine(conn)  # type: ignore[arg-type]
+
+
+@app.command()
+def intel(notice: str = typer.Option(..., help="BOAMP notice id.")) -> None:
+    """Market intelligence for a tender: every value with its n and sources (step 7)."""
+    from avant_offre.store import db
+
+    with db.session(read_only=True) as conn:
+        result = _engine(conn).intel(notice)
+    console.print_json(result.model_dump_json())
+
+
+@app.command()
+def score(
+    notice: str = typer.Option(..., help="BOAMP notice id."),
+    siret: str = typer.Option(None, help="SIRET or SIREN of the company."),
+) -> None:
+    """Go/no-go scorecard for a tender (step 8)."""
+    from avant_offre.store import db
+
+    with db.session(read_only=True) as conn:
+        engine = _engine(conn)
+        prof = engine.profile(siret=siret) if siret else None
+        result = engine.score(notice, prof)
+    console.print_json(result.model_dump_json())
+
+
+@app.command()
+def brief(
+    notice: str = typer.Option(..., help="BOAMP notice id."),
+    siret: str = typer.Option(..., help="SIRET or SIREN of the company."),
+) -> None:
+    """One-page brief (steps 9-10): LLM + verifier, or the deterministic template."""
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        engine = _engine(conn)
+        b, _ = engine.brief(notice, engine.profile(siret=siret))
+    console.print(b.text)
+    console.print(
+        f"[dim]model={b.model} fallback={b.fallback} ({b.fallback_reason}) "
+        f"removed={len(b.removed)} cost_usd={b.cost_usd}[/dim]"
+    )
+
+
+@app.command()
+def extract(limit: int = typer.Option(None, help="Max notices to process.")) -> None:
+    """LLM fallback for text facts missing from eForms (step 4)."""
+    from avant_offre.extract import llm_extract
+    from avant_offre.store import db
+
+    with db.session() as conn:
+        console.print_json(json.dumps(llm_extract.run(conn, limit)))
