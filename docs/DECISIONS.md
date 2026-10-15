@@ -70,6 +70,68 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M3: BM25 ships by default until the backtest says otherwise
+Context: DECISIONS rule 6 — an AI step must beat the simplest baseline on the backtest. No
+backtest could run in this environment.
+Decision: `search.retrievers: [bm25]`, `search.rerank: false`. `reports/matching.md` applies the
+step-6 rule mechanically (paired bootstrap on test-split Recall@20: hybrid must beat both CPV
+alerts and BM25 with a CI above 0; the reranker must beat hybrid with a CI above 0 and its latency
+is printed). The config changes only through a new entry here that cites that report.
+Alternatives considered: shipping hybrid + reranker by default (the "AI-first" default the
+decision rules forbid).
+Evidence: `src/avant_offre/eval/backtest_matching.py::_rule_outcomes`; report pending.
+Revisit if: `reports/matching.md` shows a clear gain.
+
+### 2026-10-15 — M3: hybrid is built from the tuning-best variants, in a second stage
+Context: SPEC §7.1 — every choice is made on the tuning split.
+Decision: the backtest first evaluates `bm25:max|mean` and `dense:<model>:max|mean`, picks the best
+of each family on tuning Recall@20, then builds `hybrid:<bm25>+<dense>` (RRF, k = 60) and
+`hybrid_rerank:<…>` from those two. Test-split numbers are reported for every method, the
+tuning choice is printed.
+Alternatives considered: fusing every variant (more methods, more multiple-comparison noise).
+Evidence: `tests/test_semantic.py::test_full_matching_run_with_test_doubles`.
+Revisit if: a three-way fusion is wanted (add it as an explicit method).
+
+### 2026-10-15 — M3: E5 used with the query prefix on both sides
+Context: a tender title is compared with past contract titles: a symmetric similarity task.
+The E5 authors recommend `query: ` on both sides for symmetric tasks; BGE-M3 takes no prefix.
+Decision: matching encodes both sides with the model's query prefix (`config/models.yaml`); the
+passage prefix stays configured for asymmetric uses.
+Alternatives considered: `query:` for the profile and `passage:` for tenders (the asymmetric
+retrieval setup, meant for question → document).
+Evidence: `src/avant_offre/search/dense.py`.
+Revisit if: the embedding benchmark is extended with an asymmetric variant that wins on tuning.
+
+### 2026-10-15 — M3: the reranker reads 3 pairs per candidate, not every past win
+Context: a cross-encoder on (50 past wins × 50 candidates) is 2,500 pairs per company; with
+`bge-reranker-v2-m3` on CPU that is minutes per company.
+Decision: each of the top-N fused candidates is paired with the 3 past wins that explain it best
+(first-stage similarity); its score is the max over those pairs. Cost ≈ 150 pairs per company.
+Latency per company is reported next to the gain.
+Alternatives considered: one concatenated profile text (truncated by the 512-token limit).
+Evidence: `src/avant_offre/search/rerank.py`, `tests/test_semantic.py`.
+Revisit if: the reranker shows a gain but misses cases that a 4th–5th past win would explain.
+
+### 2026-10-15 — M3: one place for the bid team's hard stops
+Context: SPEC §6.5 filters and SPEC §6.8 `hard_stops` both define deadline, amount and
+department limits.
+Decision: deadline, maximum amount and departments live only in `config/scorecard.yaml`
+(`hard_stops`); `settings.filters` keeps minimum amount, procedures and excluded CPV divisions.
+Every exclusion carries a reason code and a French label. Unknown amounts or procedures never
+exclude; an unknown deadline does (`deadline_missing`), because the tender cannot be planned.
+Alternatives considered: duplicate keys in both files (two sources of truth drift apart).
+Evidence: `tests/test_live_search.py::test_every_exclusion_has_a_reason`.
+Revisit if: the bid team wants a tender with an unknown deadline kept in the shortlist.
+
+### 2026-10-15 — M3: comparables are searched in an index built only from past awards
+Context: masking future rows at query time still lets them shape BM25 term statistics (IDF).
+Decision: `ComparablesIndex(before=…)` indexes only awards dated before the cutoff (t0 in
+backtests, every past award live) and filters results strictly before the reference date. Dense
+search uses a LanceDB prefilter on the notification day.
+Alternatives considered: one global index with masking (leaks corpus statistics).
+Evidence: `tests/test_live_search.py::test_comparables_are_strictly_before_reference_date`.
+Revisit if: never for backtests.
+
 ### 2026-10-15 — M2: recall is measured on positives inside the candidate pool
 Context: SPEC §7.2 sets the pool to test-window awards in the departments where the company won
 before t0. A company's test-window win outside those departments cannot be ranked by any method.

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import random
+import time
 from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -37,8 +38,12 @@ from avant_offre.eval.metrics import (
 from avant_offre.eval.splits import Split, assert_before, company_split, window
 from avant_offre.search import hybrid
 from avant_offre.search.bm25 import Bm25Index
+from avant_offre.search.dense import Embedder, default_embedder, embed_awards, similarity
 from avant_offre.search.profile import Profile, from_company
-from avant_offre.settings import get_settings
+from avant_offre.search.rerank import PairScorer, default_scorer
+from avant_offre.search.rerank import rerank as rerank_candidates
+from avant_offre.settings import get_models, get_settings
+from avant_offre.store.vectors import VectorStore
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +85,18 @@ class Context:
     conn: duckdb.DuckDBPyConnection
     corpus: Corpus
     cache: dict[str, Any] = field(default_factory=dict)
+    embedder_factory: Callable[[str], Embedder] = default_embedder
+    scorer_factory: Callable[[], PairScorer] = default_scorer
+    store: VectorStore | None = None
+
+    def vectors(self, model: str, ids: list[str]) -> np.ndarray:
+        """Award vectors for ``ids`` (embedding every award once per model, cached)."""
+        store = self.store or VectorStore()
+        key = f"embedded:{model}"
+        if key not in self.cache:
+            embed_awards(self.conn, self.embedder_factory(model), store)
+            self.cache[key] = True
+        return store.get("awards", model, ids)
 
 
 def load_corpus(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> Corpus:
@@ -214,9 +231,80 @@ def bm25(ctx: Context, variant: str) -> Ranker:
     return rank
 
 
+def _split_dense_variant(variant: str) -> tuple[str, hybrid.Strategy]:
+    model, _, strategy = variant.rpartition(":")
+    if strategy not in ("max", "mean"):
+        model, strategy = variant, "max"
+    model = model or get_models().embeddings.default
+    return model, "mean" if strategy == "mean" else "max"
+
+
+def _dense_matrix(ctx: Context, model: str, case: Case) -> np.ndarray:
+    key = f"docs:{model}"
+    if key not in ctx.cache:
+        ctx.cache[key] = ctx.vectors(model, ctx.corpus.ids)
+    docs: np.ndarray = ctx.cache[key]
+    queries = ctx.vectors(model, case.profile.uids)
+    return similarity(queries, docs[case.pool])
+
+
+def dense(ctx: Context, variant: str) -> Ranker:
+    model, strategy = _split_dense_variant(variant)
+
+    def rank(case: Case) -> np.ndarray:
+        scores = hybrid.aggregate(_dense_matrix(ctx, model, case), strategy)
+        return np.asarray(case.pool[hybrid.order(scores, ctx.corpus.days[case.pool])])
+
+    return rank
+
+
+def fused(ctx: Context, variant: str) -> Ranker:
+    """``hybrid:<method>+<method>`` — reciprocal rank fusion of the component rankings."""
+    components = [make_ranker(ctx, name) for name in variant.split("+")]
+    k = get_settings().search.rrf_k
+
+    def rank(case: Case) -> np.ndarray:
+        ids, _ = hybrid.rrf([r(case) for r in components], k)
+        return ids
+
+    return rank
+
+
+def fused_rerank(ctx: Context, variant: str) -> Ranker:
+    """``hybrid_rerank:<components>`` — RRF, then cross-encoder on the top N."""
+    first = fused(ctx, variant)
+    dense_parts = [p for p in variant.split("+") if p.startswith("dense:")]
+    scorer = ctx.scorer_factory()
+    top_n = get_settings().search.rerank_top_n
+
+    def rank(case: Case) -> np.ndarray:
+        ranked = first(case)
+        head = ranked[:top_n]
+        if dense_parts:
+            model, _ = _split_dense_variant(dense_parts[0].partition(":")[2])
+            sub = Case(**{**case.__dict__, "pool": head})
+            matrix = _dense_matrix(ctx, model, sub)
+        else:
+            index: Bm25Index = ctx.cache["bm25"]
+            matrix = index.score_matrix(case.profile.queries)[:, head]
+        return rerank_candidates(
+            ranked,
+            matrix,
+            profile_texts=case.profile.queries,
+            candidate_texts=ctx.corpus.texts,
+            scorer=scorer,
+            top_n=top_n,
+        )
+
+    return rank
+
+
 RANKER_FACTORIES: dict[str, Callable[[Context, str], Ranker]] = {
     "cpv_alert": cpv_alert,
     "bm25": bm25,
+    "dense": dense,
+    "hybrid": fused,
+    "hybrid_rerank": fused_rerank,
 }
 
 
@@ -242,14 +330,23 @@ def case_metrics(ranked: np.ndarray, positives: set[int]) -> dict[str, float]:
 
 
 def evaluate(
-    ctx: Context, cases: list[Case], methods: list[str]
+    ctx: Context, cases: list[Case], methods: list[str], timings: dict[str, float] | None = None
 ) -> dict[str, dict[str, dict[str, float]]]:
-    """method -> company -> metric -> value (cases without positives in the pool are skipped)."""
+    """method -> company -> metric -> value (cases without positives in the pool are skipped).
+
+    ``timings`` receives the mean ranking time per company in milliseconds (index building and
+    first-time embedding excluded: they are warmed up on the first case).
+    """
     results: dict[str, dict[str, dict[str, float]]] = {}
     scored = [c for c in cases if c.positives]
     for name in methods:
         ranker = make_ranker(ctx, name)
+        if scored:
+            ranker(scored[0])  # warm-up: builds indexes / embeds once
+        started = time.perf_counter()
         results[name] = {c.company_key: case_metrics(ranker(c), c.positives) for c in scored}
+        if timings is not None and scored:
+            timings[name] = 1000 * (time.perf_counter() - started) / len(scored)
         log.info("%s done on %d companies", name, len(scored))
     return results
 
@@ -322,12 +419,73 @@ def _positives_distribution(cases: list[Case]) -> list[str]:
     ]
 
 
-def _summary_table(summary: dict[str, dict[str, Estimate]]) -> str:
+def _summary_table(
+    summary: dict[str, dict[str, Estimate]], timings: dict[str, float] | None = None
+) -> str:
     rows = []
+    timings = timings or {}
     for name, est in summary.items():
         n = est["recall@20"].n
-        rows.append((name, n, *(est[m].fmt() for m in METRICS)))
-    return common.md_table(["Method", "n", *METRICS], rows)
+        ms = f"{timings[name]:.1f}" if name in timings else "—"
+        rows.append((f"`{name}`", n, *(est[m].fmt() for m in METRICS), ms))
+    return common.md_table(["Method", "n", *METRICS, "ms / company"], rows)
+
+
+def _rule_outcomes(
+    results: dict[str, dict[str, dict[str, float]]],
+    cases: list[Case],
+    chosen: dict[str, str],
+    timings: dict[str, float],
+) -> list[str]:
+    """Apply DECISIONS step 6 mechanically on the test split (paired bootstrap on Recall@20)."""
+    s = get_settings()
+    keys = [c.company_key for c in cases if c.split == "test" and c.positives]
+
+    def diff(a: str, b: str) -> Estimate:
+        return paired_bootstrap_diff(
+            [results[a][k]["recall@20"] for k in keys],
+            [results[b][k]["recall@20"] for k in keys],
+            s.eval.bootstrap_resamples,
+            s.seed,
+        )
+
+    lines: list[str] = []
+    comparisons = [
+        ("hybrid", "cpv_alert"),
+        ("hybrid", "bm25"),
+        ("bm25", "cpv_alert"),
+        ("hybrid_rerank", "hybrid"),
+    ]
+    rows = []
+    for fa, fb in comparisons:
+        a, b = chosen.get(fa), chosen.get(fb)
+        if a and b and a in results and b in results:
+            d = diff(a, b)
+            verdict = (
+                "clear gain" if d.lo > 0 else ("clear loss" if d.hi < 0 else "no clear difference")
+            )
+            extra = ""
+            if fa == "hybrid_rerank" and a in timings and b in timings:
+                extra = f"+{timings[a] - timings[b]:.0f} ms / company"
+            rows.append((f"`{a}` − `{b}`", d.fmt(), verdict, extra))
+    if rows:
+        lines += [
+            common.md_table(
+                [
+                    "Recall@20 difference (test, paired)",
+                    "mean [95 % CI]",
+                    "verdict",
+                    "latency cost",
+                ],
+                rows,
+            ),
+            "",
+            "Rule (DECISIONS step 6): hybrid ships only if it beats both CPV alerts and BM25 with "
+            "a CI above 0; otherwise BM25 ships. The reranker stays only if its gain over hybrid "
+            "has a CI above 0 *and* the latency cost is acceptable to the bid team.",
+            "",
+        ]
+    return lines
 
 
 def run(
@@ -337,20 +495,35 @@ def run(
     title: str,
     *,
     headline: tuple[str, str] | None = None,
+    second_stage: Callable[[dict[str, str]], list[str]] | None = None,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
+    """Evaluate ``methods``; optionally add methods built from the tuning choices
+    (``second_stage``, e.g. the hybrid of the best BM25 and the best dense variant)."""
     timer = common.Timer()
     w = window()
     s = get_settings()
-    corpus = load_corpus(conn, w.t0, w.t1)
-    ctx = Context(conn, corpus)
+    if ctx is None:
+        ctx = Context(conn, load_corpus(conn, w.t0, w.t1))
+    corpus = ctx.corpus
     cases = build_cases(ctx, w.t0, w.t1)
-    results = evaluate(ctx, cases, methods)
+    timings: dict[str, float] = {}
+    results = evaluate(ctx, cases, methods, timings)
 
-    tables: dict[str, dict[str, dict[str, Estimate]]] = {}
-    for split in ("tuning", "test"):
-        for sme in (True, False):
-            tables[f"{split}/{'sme' if sme else 'all'}"] = summarize(results, cases, split, sme)
+    def tabulate() -> dict[str, dict[str, dict[str, Estimate]]]:
+        out = {}
+        for split in ("tuning", "test"):
+            for sme in (True, False):
+                out[f"{split}/{'sme' if sme else 'all'}"] = summarize(results, cases, split, sme)
+        return out
+
+    tables = tabulate()
     chosen = choose_on_tuning(tables["tuning/all"])
+    if second_stage is not None:
+        extra = [m for m in second_stage(chosen) if m not in results]
+        results.update(evaluate(ctx, cases, extra, timings))
+        tables = tabulate()
+        chosen = choose_on_tuning(tables["tuning/all"])
 
     span = conn.execute(
         "SELECT min(notified_on), max(notified_on) FROM awards WHERE notified_on < ?", [w.t0]
@@ -373,6 +546,8 @@ def run(
         ),
         "- Recall is computed over positives inside the pool (the departments where the company "
         "won before t0); positives outside the pool are counted below.",
+        "- `ms / company`: mean ranking time per company on this machine (indexes and embeddings "
+        "built beforehand).",
         "",
         "## Positives per company",
         "",
@@ -386,22 +561,23 @@ def run(
             "",
             f"Mean over companies [95 % bootstrap CI, {s.eval.bootstrap_resamples} resamples].",
             "",
-            _summary_table(tables[key]),
+            _summary_table(tables[key], timings),
             "",
         ]
     body += [
         "## Choices made on the tuning split",
         "",
-        common.md_table(["Family", "Chosen (best Recall@20 on tuning)"], sorted(chosen.items())),
+        common.md_table(
+            ["Family", "Chosen (best Recall@20 on tuning)"],
+            [(f, f"`{n}`") for f, n in sorted(chosen.items())],
+        ),
         "",
     ]
     if headline:
-        a, b = headline
-        a = chosen.get(a, a)
-        b = chosen.get(b, b)
+        a, b = (chosen.get(h, h) for h in headline)
         if a in results and b in results:
             keys = [c.company_key for c in cases if c.split == "test" and c.positives]
-            diff = paired_bootstrap_diff(
+            d = paired_bootstrap_diff(
                 [results[a][k]["recall@20"] for k in keys],
                 [results[b][k]["recall@20"] for k in keys],
                 s.eval.bootstrap_resamples,
@@ -410,9 +586,12 @@ def run(
             body += [
                 "## Headline (test split, all sizes)",
                 "",
-                f"Recall@20 of `{a}` minus `{b}`, paired over companies: **{diff.fmt()}**.",
+                f"Recall@20 of `{a}` minus `{b}`, paired over companies: **{d.fmt()}**.",
                 "",
             ]
+    rules = _rule_outcomes(results, cases, chosen, timings)
+    if rules:
+        body += ["## Decision rules applied", "", *rules]
     body += [
         "## Caveats",
         "",
@@ -423,8 +602,9 @@ def run(
     ]
     path = common.write_report(report_name, title, body)
     raw = {
-        "methods": methods,
+        "methods": list(results),
         "chosen_on_tuning": chosen,
+        "ms_per_company": timings,
         "cases": [
             {
                 "company": c.company_key,
@@ -449,6 +629,7 @@ def run(
         "chosen": chosen,
         "companies": len(cases),
         "sizes": dict(Counter(c.size_category for c in cases)),
+        "ms_per_company": timings,
     }
 
 
@@ -460,4 +641,26 @@ def run_baselines(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         "matching_baselines.md",
         "Matching backtest — baselines (CPV alerts, BM25)",
         headline=("bm25", "cpv_alert"),
+    )
+
+
+def hybrid_stage(chosen: dict[str, str]) -> list[str]:
+    """Second stage: fuse the tuning-best BM25 and dense variants, then rerank."""
+    if "bm25" not in chosen or "dense" not in chosen:
+        return []
+    components = f"{chosen['bm25']}+{chosen['dense']}"
+    return [f"hybrid:{components}", f"hybrid_rerank:{components}"]
+
+
+def run_full(conn: duckdb.DuckDBPyConnection, ctx: Context | None = None) -> dict[str, Any]:
+    """M3: every method of SPEC §7.2 → reports/matching.md."""
+    model = get_models().embeddings.default
+    return run(
+        conn,
+        ["cpv_alert", "bm25:max", "bm25:mean", f"dense:{model}:max", f"dense:{model}:mean"],
+        "matching.md",
+        "Matching backtest — CPV alerts, BM25, dense, hybrid, reranker",
+        headline=("hybrid", "cpv_alert"),
+        second_stage=hybrid_stage,
+        ctx=ctx,
     )
