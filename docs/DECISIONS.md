@@ -70,6 +70,76 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — M1: the company key is the SIREN, not the SIRET
+Context: DECP identifies winners by establishment (SIRET). A company winning through two
+establishments would count as two competitors, and opening a new establishment would make it
+look like a first-time winner.
+Decision: `award_winners.company_key` = SIREN whenever the identifier carries one; otherwise
+`id:<type>:<id>` (foreign ids) or `name:<normalized name>` (no id). `companies` is SIREN-level and
+keeps the most frequent SIRET. Competitors, first wins and the company split (SPEC §7.1) all use
+this key.
+Alternatives considered: SIRET everywhere (as in SPEC §5): inflates newcomers and splits
+competitors.
+Evidence: design choice; effect on newcomer share to be measured in M4.
+Revisit if: a bid office needs establishment-level competitors (e.g. regional agencies).
+
+### 2026-10-15 — M1: first wins are computed on the whole DECP file, also in sample mode
+Context: sample mode keeps 10 departments and 4 CPV divisions. Computing "first DECP win" inside
+that scope would label as newcomers companies that won elsewhere first.
+Decision: `company_first_win` takes the minimum initial-award date over the full file (dates in
+[2000-01-01, today]); the sample scope only decides which companies are listed. The data window
+start for left-censoring comes from the same full-file pass.
+Alternatives considered: in-scope minimum (biased towards newcomers).
+Evidence: `tests/test_quality_first_win.py::test_first_win_uses_full_file_not_scope`.
+Revisit if: never for correctness; only for speed if the full pass becomes slow.
+
+### 2026-10-15 — M1: deterministic links before fuzzy ones, with a `siren` link method
+Context: SPEC §6.3 lists exact SIRET, SIREN + department, fuzzy, embeddings. The DECP enum also
+has TVA identifiers; French VAT numbers embed the SIREN.
+Decision: methods are `exact` (valid SIRET, Luhn, La Poste rule), `siren` (9-digit SIREN, FR VAT,
+or a SIRET with a bad check digit whose SIREN is already known in that department), `fuzzy`
+(rapidfuzz WRatio ≥ 90 against companies already linked in the same department, plus SIRENE
+stock names in full mode), `embedding` (residue only, flagged), `none`. A later pass never
+overwrites an earlier link.
+Alternatives considered: fuzzy matching against the full SIRENE name list in sample mode
+(a ~1 GB download for a residue that is mostly foreign companies).
+Evidence: `tests/test_entity_resolution.py`; link rates per method in `docs/DATA_QUALITY.md` once
+data runs.
+Revisit if: the `none` share is large enough to bias the backtest (DECISIONS step 3).
+
+### 2026-10-15 — M1: privacy fails closed; legal form in the name counts as evidence
+Context: SPEC §4.6 masks sole traders. Foreign or id-less winners have no SIRENE record, so their
+legal status is unknown.
+Decision: `company_names` is the single source of display names. Legal category 1000 or the
+publisher's `[Données personnelles non-diffusibles]` mark ⇒ `Entreprise individuelle #hash6`.
+Unknown status ⇒ `Titulaire non vérifié #hash6`, unless the name carries a legal-person form
+(SAS, SARL, GmbH, Ltd…), which is evidence of a legal person. `hash6` is a display label, not
+anonymization.
+Alternatives considered: show names when unknown (risks publishing a person's name).
+Evidence: `tests/test_privacy.py`.
+Revisit if: unknown-status winners are numerous enough to hurt the competitor list (then add a
+SIRENE name search for them).
+
+### 2026-10-15 — M1: execution department falls back to the buyer's department
+Context: `lieuExecution_code` comes in 7 formats (DATA_QUALITY F-001); region and country codes
+carry no department.
+Decision: derive the department from postal / commune / arrondissement / canton / department
+codes in SQL (Corsican postal ranges mapped to 2A/2B, overseas to 3 digits, invalid codes →
+NULL), then fall back to `acheteur_departement_code`. `awards.exec_dept_source` records which
+one was used, and the quality report counts both.
+Alternatives considered: drop awards without a usable execution code (loses national buyers).
+Evidence: `tests/test_normalize.py::test_exec_dept`.
+Revisit if: the `buyer` fallback share is high and the buyer's seat differs from the execution
+place (e.g. ministries).
+
+### 2026-10-15 — M1: duplicate notices keep the latest publication of a procedure
+Context: a correction notice republishes the same procedure and may move the deadline.
+Decision: dedup by notice id, then eForms ContractFolderID, then buyer + deadline + title
+similarity ≥ 92 (token_set_ratio); the most recently published notice is kept.
+Alternatives considered: keep the first notice (would show an outdated deadline).
+Evidence: `tests/test_dedup.py`, `tests/test_eforms_tenders.py`.
+Revisit if: spot checks find duplicates the rules miss.
+
 ### 2026-10-15 — M0: no data in this cloud environment; build against verified schemas, report nothing
 Context: `reports/check_sources.md` shows every open-data host (`www.data.gouv.fr`,
 `boamp-datadila.opendatasoft.com`, `recherche-entreprises.api.gouv.fr`, `api.ted.europa.eu`)

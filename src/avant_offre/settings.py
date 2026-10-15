@@ -73,7 +73,8 @@ class BoampSource(BaseModel):
     api_base: str
     licence: str
     lookback_days: int = 21
-    page_size: int = 100
+    fields: dict[str, str]
+    required_fields: list[str]
 
 
 class SireneSource(BaseModel):

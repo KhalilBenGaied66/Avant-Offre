@@ -25,7 +25,21 @@ sources:
     api_base: "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp"
     licence: "Licence Ouverte 2.0"
     lookback_days: 21          # live mode: notices published in the last N days
-    page_size: 100
+    # Field names are UNVERIFIED (host blocked at M0, DATA_QUALITY F-002). Ingest checks them
+    # against the first records and stops with the observed field list on a mismatch.
+    fields:
+      notice_id: idweb
+      objet: objet
+      buyer_name: nomacheteur
+      published_on: dateparution
+      deadline_on: datelimitereponse
+      dept: code_departement
+      procedure: procedure_libelle
+      nature: nature_libelle
+      market_type: type_marche
+      url: url_avis
+      donnees: donnees
+    required_fields: [notice_id, objet, published_on, deadline_on, donnees]
   sirene:
     api_search_url: "https://recherche-entreprises.api.gouv.fr/search"
     api_max_requests_per_s: 6  # the API documents 7 req/s; stay below it
