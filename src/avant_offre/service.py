@@ -76,6 +76,7 @@ def week_bounds(week: str | None, today: date) -> tuple[date, date]:
 class Engine:
     conn: duckdb.DuckDBPyConnection
     today: date = field(default_factory=date.today)
+    app_conn: duckdb.DuckDBPyConnection | None = None  # where briefs are stored, if anywhere
     _index: ComparablesIndex | None = None
     _competitors: CompetitorModel | None = None
     _matches: dict[str, dict[str, Match]] = field(default_factory=dict)
@@ -244,6 +245,6 @@ class Engine:
             company_key=prof.company_key,
         )
         b = writer.write(bf, model=model)
-        if persist:
-            writer.store(self.conn, b, bf)
+        if persist and self.app_conn is not None:
+            writer.store(self.app_conn, b, bf)
         return b, bf

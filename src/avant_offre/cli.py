@@ -311,9 +311,13 @@ def brief(
     """One-page brief (steps 9-10): LLM + verifier, or the deterministic template."""
     from avant_offre.store import db
 
-    with db.session() as conn:
+    with db.session(read_only=True) as conn:
         engine = _engine(conn)
-        b, _ = engine.brief(notice, engine.profile(siret=siret))
+        engine.app_conn = db.app_connect()
+        try:
+            b, _ = engine.brief(notice, engine.profile(siret=siret))
+        finally:
+            engine.app_conn.close()
     console.print(b.text)
     console.print(
         f"[dim]model={b.model} fallback={b.fallback} ({b.fallback_reason}) "
@@ -329,3 +333,43 @@ def extract(limit: int = typer.Option(None, help="Max notices to process.")) -> 
 
     with db.session() as conn:
         console.print_json(json.dumps(llm_extract.run(conn, limit)))
+
+
+@app.command()
+def mcp(
+    transport: str = typer.Option("stdio", help="stdio | http"),
+    host: str = typer.Option("127.0.0.1"),
+    port: int = typer.Option(8001),
+) -> None:
+    """MCP server exposing read-only tools (step 11)."""
+    from avant_offre.agent import mcp_server
+
+    mcp_server.main("stdio" if transport == "stdio" else "http", host, port)
+
+
+@app.command()
+def digest(
+    siret: str = typer.Option(..., help="SIRET or SIREN of the company."),
+    week: str = typer.Option(None, help="ISO week, e.g. 2026-W42."),
+    out: str = typer.Option(None, help="Directory for digest.json, card.json, digest.html."),
+) -> None:
+    """Weekly digest payload (step 12). Writes files only; delivery is Power Automate."""
+    from pathlib import Path
+
+    from avant_offre.digest import adaptive_card
+    from avant_offre.digest import digest as digest_mod
+    from avant_offre.store import db
+
+    with db.session(read_only=True) as conn:
+        engine = _engine(conn)
+        d = digest_mod.build(engine, engine.shortlist(engine.profile(siret=siret), week), siret)
+    card = adaptive_card.build(d)
+    if out:
+        target = Path(out)
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "digest.json").write_text(d.model_dump_json(indent=1), encoding="utf-8")
+        (target / "card.json").write_text(json.dumps(card, ensure_ascii=False, indent=1), "utf-8")
+        (target / "digest.html").write_text(digest_mod.render_html(d), encoding="utf-8")
+        console.print(f"wrote {target}/digest.json, card.json, digest.html")
+    else:
+        console.print_json(d.model_dump_json())

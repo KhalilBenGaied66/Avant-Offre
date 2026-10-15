@@ -16,23 +16,26 @@ import duckdb
 
 from avant_offre.settings import get_settings
 
+EVAL_TABLES_DDL = """
+CREATE TABLE IF NOT EXISTS eval_runs (
+    run_id VARCHAR PRIMARY KEY,
+    name VARCHAR,
+    started_at TIMESTAMP,
+    runtime_s DOUBLE,
+    mode VARCHAR,
+    config_hash VARCHAR,
+    snapshot_date VARCHAR,
+    git_commit VARCHAR,
+    seed BIGINT,
+    report_path VARCHAR,
+    summary JSON
+);
+"""
+
+# Written by the API process only, in data/app.duckdb: the analytic store stays read-only for
+# services, so the API, the MCP server and the CLI can read it at the same time (DuckDB allows
+# many read-only processes or one writer).
 APP_TABLES_DDL = """
-CREATE TABLE IF NOT EXISTS profiles (
-    profile_id VARCHAR PRIMARY KEY,
-    siret VARCHAR,
-    siren VARCHAR,
-    free_text VARCHAR,
-    built_at TIMESTAMP,
-    cutoff DATE
-);
-CREATE TABLE IF NOT EXISTS scores (
-    notice_id VARCHAR,
-    company_key VARCHAR,
-    computed_at TIMESTAMP,
-    total DOUBLE,
-    band VARCHAR,
-    payload JSON
-);
 CREATE TABLE IF NOT EXISTS briefs (
     brief_id VARCHAR PRIMARY KEY,
     notice_id VARCHAR,
@@ -57,30 +60,31 @@ CREATE TABLE IF NOT EXISTS feedback (
     value VARCHAR,         -- relevant | not_relevant | go | no_go
     reason VARCHAR
 );
-CREATE TABLE IF NOT EXISTS eval_runs (
-    run_id VARCHAR PRIMARY KEY,
-    name VARCHAR,
-    started_at TIMESTAMP,
-    runtime_s DOUBLE,
-    mode VARCHAR,
-    config_hash VARCHAR,
-    snapshot_date VARCHAR,
-    git_commit VARCHAR,
-    seed BIGINT,
-    report_path VARCHAR,
-    summary JSON
-);
 """
 
 
 def connect(path: Path | None = None, *, read_only: bool = False) -> duckdb.DuckDBPyConnection:
+    """The analytic store, built by batch jobs. Services open it read-only."""
     path = path or get_settings().db_path
     if not read_only:
         path.parent.mkdir(parents=True, exist_ok=True)
     conn = duckdb.connect(str(path), read_only=read_only)
     if not read_only:
-        ensure_app_tables(conn)
+        ensure_eval_tables(conn)
     return conn
+
+
+def app_connect(path: Path | None = None) -> duckdb.DuckDBPyConnection:
+    """The application store (feedback, stored briefs)."""
+    path = path or get_settings().app_db_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = duckdb.connect(str(path))
+    ensure_app_tables(conn)
+    return conn
+
+
+def ensure_eval_tables(conn: duckdb.DuckDBPyConnection) -> None:
+    conn.execute(EVAL_TABLES_DDL)
 
 
 def ensure_app_tables(conn: duckdb.DuckDBPyConnection) -> None:

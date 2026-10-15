@@ -183,6 +183,9 @@ class BriefConfig(BaseModel):
 
 class ApiConfig(BaseModel):
     key_header: str = "X-API-Key"
+    cors_origins: list[str] = Field(default_factory=list)
+    public_base_url: str = "http://localhost:5173"  # review page, for links in the digest
+    digest_top: int = 10
 
 
 class Settings(BaseSettings):
@@ -254,6 +257,10 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / "avant_offre.duckdb"
+
+    @property
+    def app_db_path(self) -> Path:
+        return self.data_dir / "app.duckdb"
 
     @property
     def manifest_path(self) -> Path:

@@ -83,8 +83,11 @@ max-branches = 15
 # and bind every user value as a parameter.
 "src/avant_offre/{ingest,transform,eval}/**" = ["S608"]
 "src/avant_offre/quality.py" = ["S608"]
-# The brief template is French prose: its lines are content, not code.
+# Templates are French prose / HTML: their lines are content, not code.
 "src/avant_offre/brief/template.py" = ["E501"]
+"src/avant_offre/digest/digest.py" = ["E501"]
+# Adaptive Card property names are fixed by the Microsoft schema (camelCase).
+"src/avant_offre/digest/adaptive_card.py" = ["N815"]
 # CLI commands import their module lazily to keep `avant-offre --help` fast.
 "src/avant_offre/cli.py" = ["PLC0415"]
 
