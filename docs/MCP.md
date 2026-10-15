@@ -15,7 +15,7 @@ All tools are read-only. Each returns JSON; every statistic carries its `n` and 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
 | `search_tenders` | `siret` or `free_text`, optional `week` (`2026-W42`) | ranked tenders with band, and excluded tenders with reasons |
-| `get_tender` | `notice_id` | notice fields and extracted facts (source `eforms`, or `llm` with a verbatim quote) |
+| `get_tender` | `notice_id` | notice fields and extracted facts (source `eforms` or `national`, or `llm` with a verbatim quote) |
 | `match_explanations` | `notice_id`, `siret` | fit percentile and the 3 past contracts that explain the match |
 | `market_stats` | `notice_id` | newcomer share, SME share, median bids, buyer concentration |
 | `competitors` | `notice_id`, optional `siret` | likely competitors with incumbent / new-to-buyer flags |

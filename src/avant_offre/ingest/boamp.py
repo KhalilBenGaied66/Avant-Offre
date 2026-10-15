@@ -18,8 +18,14 @@ from typing import Any
 import duckdb
 import httpx
 
-from avant_offre.extract import eforms
-from avant_offre.ingest.manifest import Manifest, ManifestEntry, http_client, sha256_file
+from avant_offre.extract import notice
+from avant_offre.ingest.manifest import (
+    Manifest,
+    ManifestEntry,
+    http_client,
+    sha256_file,
+    with_retries,
+)
 from avant_offre.runinfo import utc_now
 from avant_offre.settings import get_settings
 from avant_offre.store.db import set_meta
@@ -50,6 +56,7 @@ def fetch(today: date | None = None, client: httpx.Client | None = None) -> Path
     dest = s.raw_dir / "boamp" / f"boamp_open_{today.isoformat()}.jsonl"
     dest.parent.mkdir(parents=True, exist_ok=True)
 
+    @with_retries  # a reset tunnel restarts the export from scratch ("wb")
     def _run(c: httpx.Client) -> str:
         with c.stream("GET", url, params=params) as resp:
             resp.raise_for_status()
@@ -118,7 +125,7 @@ def _as_text(value: Any) -> str | None:
 
 
 def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dict[str, int]:
-    """Create ``tenders`` and ``tender_facts`` (source = eforms) from BOAMP JSONL pulls."""
+    """Create ``tenders`` and ``tender_facts`` (source = eforms | national) from BOAMP pulls."""
     f = get_settings().sources.boamp.fields
     records: dict[str, dict[str, Any]] = {}
     seen = 0
@@ -137,10 +144,10 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
     facts_rows = []
     for nid, r in records.items():
         donnees = r.get(f["donnees"])
-        parsed = eforms.parse(donnees)
+        parsed = notice.parse(donnees)
         for fact, value in parsed.values.items():
             facts_rows.append(
-                (nid, fact, json.dumps(value, ensure_ascii=False), "eforms", None, 1.0)
+                (nid, fact, json.dumps(value, ensure_ascii=False), parsed.source, None, 1.0)
             )
         staging.append(
             (
@@ -158,6 +165,8 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
                 json.dumps(parsed.get("award_criteria") or [], ensure_ascii=False),
                 parsed.get("contract_folder_id"),
                 parsed.get("buyer_siret"),
+                parsed.source,
+                parsed.notice_format,
                 _as_text(r.get(f.get("url", ""))),
                 json.dumps(r, ensure_ascii=False, default=str),
             )
@@ -170,13 +179,13 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
             notice_id VARCHAR, source VARCHAR, buyer_name VARCHAR, objet VARCHAR,
             published_raw VARCHAR, deadline_raw VARCHAR, dept_raw VARCHAR, cpv VARCHAR,
             procedure VARCHAR, estimated_value_eur DOUBLE, lots_json VARCHAR,
-            criteria_json VARCHAR, folder_id VARCHAR, buyer_siret VARCHAR, url VARCHAR,
-            raw_json VARCHAR)
+            criteria_json VARCHAR, folder_id VARCHAR, buyer_siret VARCHAR,
+            facts_source VARCHAR, notice_format VARCHAR, url VARCHAR, raw_json VARCHAR)
         """
     )
     if staging:
         conn.executemany(
-            "INSERT INTO tenders_staging VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            f"INSERT INTO tenders_staging VALUES ({', '.join('?' * len(staging[0]))})",
             staging,
         )
     conn.execute(
@@ -187,9 +196,9 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, paths: Iterable[Path]) -> dic
                TRY_CAST(substr(deadline_raw, 1, 10) AS DATE) AS deadline_on,
                ao_dept_from_dept(dept_raw) AS dept,
                cpv, substr(cpv, 1, 2) AS cpv_division, procedure, estimated_value_eur,
-               lots_json, criteria_json, folder_id, url, raw_json,
+               lots_json, criteria_json, folder_id, notice_format, url, raw_json,
                coalesce(t.buyer_siret, b.buyer_siret) AS buyer_siret,
-               CASE WHEN t.buyer_siret IS NOT NULL THEN 'eforms'
+               CASE WHEN t.buyer_siret IS NOT NULL THEN t.facts_source
                     WHEN b.buyer_siret IS NOT NULL THEN 'name_match' ELSE 'none' END
                    AS buyer_siret_source,
                CAST(NULL AS VARCHAR) AS duplicate_of, CAST(NULL AS VARCHAR) AS dedup_reason

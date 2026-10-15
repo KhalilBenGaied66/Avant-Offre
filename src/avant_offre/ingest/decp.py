@@ -12,7 +12,7 @@ from pathlib import Path
 
 import duckdb
 
-from avant_offre.ingest.manifest import ManifestEntry, download
+from avant_offre.ingest.manifest import Manifest, ManifestEntry, download, sha256_file
 from avant_offre.settings import get_settings
 
 log = logging.getLogger(__name__)
@@ -61,7 +61,25 @@ def raw_path() -> Path:
     return get_settings().raw_dir / "decp" / "decp.parquet"
 
 
-def fetch() -> ManifestEntry:
+class SnapshotMissingError(RuntimeError):
+    pass
+
+
+def local_snapshot() -> ManifestEntry:
+    """The snapshot already on disk, checked against its manifest entry (``--no-download``)."""
+    entry = Manifest.load().entries.get("decp")
+    path = raw_path()
+    if entry is None or not path.exists():
+        raise SnapshotMissingError(f"no DECP snapshot recorded at {path}: run online once.")
+    if sha256_file(path) != entry.sha256:
+        raise SnapshotMissingError(f"{path} does not match its manifest checksum.")
+    log.info("DECP reused: snapshot of %s (%s)", entry.downloaded_at, entry.final_url)
+    return entry
+
+
+def fetch(*, use_local: bool = False) -> ManifestEntry:
+    if use_local:
+        return local_snapshot()
     s = get_settings()
     status, entry = download(
         "decp", s.sources.decp.parquet_url, raw_path(), licence=s.sources.decp.licence

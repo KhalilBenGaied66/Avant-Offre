@@ -1,10 +1,10 @@
 """Parse structured eForms content of BOAMP notices.
 
-BOAMP notices published since 31 January 2024 use EU eForms (UBL). The ``donnees`` field holds a
-JSON transcription of that XML; its exact layout is unverified (DATA_QUALITY F-002), so the parser
+BOAMP notices above the EU thresholds use eForms (UBL). The ``donnees`` field holds a JSON
+transcription of that XML (``{"EFORMS": {"ContractNotice": …}}``, DATA_QUALITY F-005). The parser
 does not depend on the nesting: it looks up eForms element names wherever they appear, ignoring
 namespace prefixes (``cbc:``, ``cac:``, ``efbc:``…) and the usual XML-to-JSON text conventions
-(``#text``, ``_``, ``$``, ``value``).
+(``#text``, ``_``, ``$``, ``value``). National formats are read by ``extract.national``.
 
 Facts read here are ``source = eforms``: structured fields are read, not inferred (DECISIONS
 rule 1). The LLM fallback (``llm_extract``) only runs for facts this parser could not find.
@@ -12,11 +12,12 @@ rule 1). The LLM fallback (``llm_extract``) only runs for facts this parser coul
 
 from __future__ import annotations
 
+import calendar
 import json
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 TEXT_KEYS = ("#text", "_", "$", "value", "text", "#value", "content")
@@ -127,12 +128,65 @@ class EformsFacts:
         return self.values.get(name)
 
 
-def _duration_months(node: Any) -> float | None:
-    for d in find_all(node, "DurationMeasure"):
-        value = to_float(text_of(d))
-        unit = (attr_of(d, "unitCode") or "MONTH").upper()
+def _add_months(d: date, months: int) -> date:
+    y, m = divmod(d.month - 1 + months, 12)
+    year, month = d.year + y, m + 1
+    return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
+
+
+def months_between(start: date, end: date) -> float | None:
+    """Calendar months from ``start`` to ``end`` inclusive (2027-01-01..2027-06-30 is 6.0)."""
+    stop = end + timedelta(days=1)
+    if stop <= start:
+        return None
+    whole = (stop.year - start.year) * 12 + stop.month - start.month
+    if _add_months(start, whole) > stop:
+        whole -= 1
+    rest = (stop - _add_months(start, whole)).days
+    return round(whole + rest * DURATION_TO_MONTHS["DAY"], 1)
+
+
+def _period_months(period: Any) -> float | None:
+    measure = first(period, "DurationMeasure")
+    if measure is not None:
+        value = to_float(text_of(measure))
+        unit = (attr_of(measure, "unitCode") or "MONTH").upper()
         if value is not None and unit in DURATION_TO_MONTHS:
             return round(value * DURATION_TO_MONTHS[unit], 1)
+    start, end = to_date(path_text(period, "StartDate")), to_date(path_text(period, "EndDate"))
+    return months_between(start, end) if start and end else None
+
+
+def _duration_months(doc: Any) -> float | None:
+    """Contract duration: the longest ``PlannedPeriod`` (BT-36), usually one per lot.
+
+    Only ``PlannedPeriod`` is read: other ``DurationMeasure`` elements in a notice, such as
+    ``TenderValidityPeriod`` (how long a bid stays valid), are not the contract duration.
+    """
+    months = [m for p in find_all(doc, "PlannedPeriod") if (m := _period_months(p)) is not None]
+    return max(months) if months else None
+
+
+def _buyer_siret(doc: Any) -> str | None:
+    """SIRET of the buyer: ``ContractingParty`` points to an organisation (``ORG-0001``) whose
+    legal identifier is ``PartyLegalEntity/CompanyID``. Platforms sometimes put their own
+    internal number there, so only a 14-digit value is kept."""
+    party = first(doc, "ContractingParty")
+    if party is None:
+        return None
+    refs = []
+    for ident in find_all(party, "PartyIdentification"):
+        value = re.sub(r"\s", "", path_text(ident, "ID") or "")
+        if re.fullmatch(r"\d{14}", value):
+            return value
+        refs.append(value)
+    for org in find_all(doc, "Organization"):
+        company = first(org, "Company")
+        if company is None or path_text(first(company, "PartyIdentification"), "ID") not in refs:
+            continue
+        legal = first(company, "PartyLegalEntity")
+        value = re.sub(r"\s", "", path_text(legal, "CompanyID") or "")
+        return value if re.fullmatch(r"\d{14}", value) else None
     return None
 
 
@@ -206,7 +260,7 @@ def parse(donnees: str | dict[str, Any] | None) -> EformsFacts:
     if period is not None and (d := to_date(path_text(period, "EndDate"))):
         facts["deadline"] = d.isoformat()
 
-    if (months := _duration_months(first(doc, "ProcurementProject") or doc)) is not None:
+    if (months := _duration_months(doc)) is not None:
         facts["duration_months"] = months
 
     if code := path_text(doc, "ProcedureCode"):
@@ -230,11 +284,7 @@ def parse(donnees: str | dict[str, Any] | None) -> EformsFacts:
     if folder := path_text(doc, "ContractFolderID"):
         facts["contract_folder_id"] = folder
 
-    party = first(doc, "ContractingParty")
-    for ident in find_all(party, "PartyIdentification") if party is not None else []:
-        value = re.sub(r"\s", "", path_text(ident, "ID") or "")
-        if re.fullmatch(r"\d{14}", value):
-            facts["buyer_siret"] = value
-            break
+    if siret := _buyer_siret(doc):
+        facts["buyer_siret"] = siret
 
     return EformsFacts(facts)

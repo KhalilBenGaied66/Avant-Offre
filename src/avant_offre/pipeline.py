@@ -72,12 +72,20 @@ def build_tenders(conn: duckdb.DuckDBPyConnection, pulls: list[Path]) -> dict[st
     return counts
 
 
-def run(*, with_boamp: bool = True) -> dict[str, object]:
+def run(*, with_boamp: bool = True, download: bool = True) -> dict[str, object]:
+    """``download=False`` rebuilds from the DECP and BOAMP snapshots already on disk (recorded in
+    the manifest, so reports still print their download date). SIRENE lookups go through their
+    cache either way."""
     raw = decp.raw_path()
-    decp.fetch()
+    decp.fetch(use_local=not download)
+    pulls = [] if download or not with_boamp else boamp.latest_pulls()
+    if with_boamp and not download and not pulls:
+        raise decp.SnapshotMissingError("no BOAMP pull on disk: run once with downloads.")
     with db.session() as conn:
         out = build_awards(conn, raw)
         if with_boamp:
-            boamp.fetch()
-            out["tenders"] = build_tenders(conn, boamp.latest_pulls())
+            if download:
+                boamp.fetch()
+                pulls = boamp.latest_pulls()
+            out["tenders"] = build_tenders(conn, pulls)
     return out

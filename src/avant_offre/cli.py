@@ -38,15 +38,21 @@ def _fail(message: str, code: int = 2) -> NoReturn:
 @app.command()
 def data(
     boamp: bool = typer.Option(True, help="Also pull open BOAMP tenders (live mode)."),
+    download: bool = typer.Option(
+        True, help="Download DECP / BOAMP; --no-download rebuilds from the snapshots on disk."
+    ),
 ) -> None:
     """Ingest + normalize (DECP, SIRENE, BOAMP) into data/avant_offre.duckdb."""
     import httpx
 
     from avant_offre import pipeline
+    from avant_offre.ingest.decp import SnapshotMissingError
 
     console.print(f"mode: [bold]{get_settings().mode}[/bold]")
     try:
-        out = pipeline.run(with_boamp=boamp)
+        out = pipeline.run(with_boamp=boamp, download=download)
+    except SnapshotMissingError as exc:
+        _fail(str(exc))
     except httpx.ProxyError as exc:
         _fail(
             f"a data host was refused by the network policy ({exc}). Nothing was ingested. "
@@ -61,10 +67,11 @@ def data(
 def quality() -> None:
     """Regenerate the generated section of docs/DATA_QUALITY.md."""
     from avant_offre import quality as q
+    from avant_offre.ingest.decp import raw_path
     from avant_offre.store import db
 
     with db.session() as conn:
-        path = q.write(conn)
+        path = q.write(conn, raw=raw_path())
     console.print(f"wrote {path}")
 
 

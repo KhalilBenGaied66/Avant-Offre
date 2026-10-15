@@ -70,6 +70,58 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-15 — Real data: rebuild from the recorded snapshot when a source is flaky
+Context: on the first real run, `www.data.gouv.fr` reset every connection for minutes at a time
+while the DECP file (downloaded an hour earlier, checksum in `data/manifest.json`) sat on disk.
+The run stopped on the freshness check, before any transform.
+Decision: `avant-offre data --no-download` rebuilds from the DECP and BOAMP snapshots on disk,
+after checking the DECP file against its manifest checksum; it fails loudly when no snapshot is
+recorded. Reports keep printing the snapshot's download date, so a stale rebuild is visible. The
+default stays "download, conditionally". The BOAMP export is now retried like the other
+downloads.
+Alternatives considered: fall back to the local copy silently on a network error (hides
+staleness from the weekly job); raise the retry count further (the outage lasted longer than any
+sensible backoff).
+Evidence: `tests/test_ingest.py::test_no_download_reuses_only_a_verified_snapshot`.
+Revisit if: the weekly job runs on a network where the sources are reliable; then alert on
+snapshot age (HANDOFF § 4) rather than rely on this flag.
+
+### 2026-10-15 — Real data: parse the national BOAMP formats, not only eForms
+Context: on real notices, `donnees` names its format at the top level, and many open notices
+are national formats (`FNSimple`, `MAPA`) that the eForms walker reads as empty (DATA_QUALITY
+F-005; shares in the generated "Notice formats" table).
+Decision: `extract/notice.py` dispatches on that key; `extract/national.py` reads `FNSimple` and
+`MAPA` by path (CPV, deadline, duration, lots, weighted criteria for MAPA, qualification texts,
+buyer SIRET for FNSimple). Facts read there have `source = national`, a third value next to
+`eforms` and `llm` (SPEC §6.3). `DSP` and `DIVERS`, rare, are labelled and not parsed. Free text
+(FNSimple criteria paragraphs, MAPA durations written as sentences) is left to the LLM fallback,
+which now also receives the national free-text fields through an allowlist that excludes the
+buyer's contact person. Price ranges are not converted to point estimates.
+Alternatives considered: send national notices straight to the LLM (structured fields exist, so
+reading them is exact and free: DECISIONS rule 1); parse `DSP`/`DIVERS` too (too rare to justify
+the code today).
+Evidence: `tests/test_eforms_tenders.py` (FNSimple, MAPA, unparsed formats, tenders table,
+LLM text allowlist); coverage by source in the generated section of `docs/DATA_QUALITY.md`.
+Revisit if: `DSP` or `DIVERS` grow above a few percent of open notices, or BOAMP moves the
+national formats to eForms.
+
+### 2026-10-15 — Real data: eForms buyer SIRET and contract duration read from the right place
+Context: on real eForms notices, `ContractingParty` holds a reference (`ORG-0002`), not a SIRET,
+so no buyer SIRET was ever found; and the first `DurationMeasure` found could be the bid
+validity period (`TenderValidityPeriod`) rather than the contract duration (DATA_QUALITY F-005).
+Decision: resolve the reference through `efac:Organization` to
+`PartyLegalEntity/CompanyID`, keeping only 14-digit values (platforms sometimes store their own
+number); read durations only from `PlannedPeriod` (measure, or start/end dates in calendar
+months), and take the longest lot. Call-offs in DECP are also redefined from the real values
+(`idAccordCadre` naming another contract, or `nature` saying subséquent), since the file sets
+`idAccordCadre` on frameworks to their own id.
+Alternatives considered: match buyers by name only (ambiguous for common names such as
+"Commune de …"; kept as the fallback, flagged `name_match`).
+Evidence: `tests/test_eforms_tenders.py::test_eforms_real_layout_duration_and_buyer`,
+`::test_eforms_buyer_with_platform_number_is_not_a_siret`,
+`tests/test_normalize.py::test_call_off_detection`.
+Revisit if: the coverage table shows eForms notices still missing a buyer SIRET in large numbers.
+
 ### 2026-10-15 — M6: the README states plainly that no result is published yet
 Context: SPEC §11 asks for "Résultats mesurés" copied from `reports/SUMMARY.md`; no evaluation
 could run in the build environment.
