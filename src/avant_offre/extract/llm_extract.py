@@ -52,15 +52,30 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+# Free-text fields of the national formats sent to the model. An allowlist, so the buyer's
+# contact person (name, e-mail, phone) present in the same records is never sent.
+NATIONAL_TEXT_FIELDS = (
+    "intitule",
+    "description",
+    "criteresAttrib",
+    "capaciteExercice",
+    "capaciteEcoFin",
+    "capaciteTech",
+    "principales",
+    "garanties",
+)
+
+
 def notice_text(objet: str | None, raw_json: str | None) -> str:
-    """Free text of a notice: title plus every Description element of its eForms content."""
+    """Free text of a notice: title, eForms Description elements, national free-text fields."""
     parts = [objet or ""]
     if raw_json:
         record: Any = json.loads(raw_json)
         donnees = record.get("donnees") if isinstance(record, dict) else None
         doc: Any = json.loads(donnees) if isinstance(donnees, str) else donnees
         if doc is not None:
-            parts += [t for d in eforms.find_all(doc, "Description") if (t := eforms.text_of(d))]
+            for name in ("Description", *NATIONAL_TEXT_FIELDS):
+                parts += [t for d in eforms.find_all(doc, name) if (t := eforms.text_of(d))]
     return "\n".join(p for p in parts if p)
 
 
@@ -105,7 +120,7 @@ def run(
     rows = conn.execute(
         """
         SELECT t.notice_id, t.objet, t.raw_json,
-               list(f.fact) FILTER (WHERE f.source = 'eforms') AS have
+               list(f.fact) FILTER (WHERE f.source <> 'llm') AS have
         FROM tenders t LEFT JOIN tender_facts f USING (notice_id)
         WHERE t.duplicate_of IS NULL
         GROUP BY ALL ORDER BY t.notice_id

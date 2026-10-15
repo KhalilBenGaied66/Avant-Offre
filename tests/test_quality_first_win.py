@@ -48,7 +48,8 @@ def test_quality_report_keeps_hand_written_findings(
         f"# DQ\n\n## Findings\nkeep me\n\n{quality.START}\nold\n{quality.END}\ntrailer\n",
         encoding="utf-8",
     )
-    quality.write(conn, doc)
+    quality.write(conn, doc, raw=decp_parquet)
     text = doc.read_text(encoding="utf-8")
     assert "keep me" in text and "trailer" in text and "old" not in text
+    assert "Raw DECP value sets" in text and "<code>nature</code>" in text
     assert "### Volumes" in text and "link_method" in text and "Location formats" in text

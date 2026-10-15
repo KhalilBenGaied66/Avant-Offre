@@ -11,6 +11,7 @@ import pytest
 
 from avant_offre.ingest.decp import SchemaMismatchError, check_schema
 from avant_offre.transform import normalize
+from tests.fixtures import build_rows
 
 
 @pytest.mark.parametrize(
@@ -30,6 +31,14 @@ from avant_offre.transform import normalize
         ("20", "Code département", None),  # pre-1976 Corsica code is ambiguous
         ("751", "Code arrondissement", "75"),
         ("7501", " Code canton", "75"),  # the enum carries a leading space
+        ("7501", "Code canton", "75"),  # ... the real file does not (DATA_QUALITY F-004)
+        ("13", "CODE DEPARTEMENT", "13"),  # real spelling variants
+        ("33", "Code departement", "33"),
+        ("69003", "CODE POSTAL", "69"),
+        ("FR", "CODE PAYS", None),
+        ("84", "CODE REGION", None),
+        ("FRL03", None, None),  # NUTS code with no type
+        ("VALLEE SUD GRAND PARIS", "Code commune", None),  # free text
         ("FR101", "Code région", None),
         ("FR", "Code pays", None),
         (None, "Code postal", None),
@@ -122,3 +131,22 @@ def test_schema_check_fails_loudly(tmp_path: Path) -> None:
     pq.write_table(pa.table({"uid": ["x"], "objet": ["y"]}), p)
     with pytest.raises(SchemaMismatchError, match="Observed schema"):
         check_schema(p)
+
+
+def test_call_off_detection(conn: duckdb.DuckDBPyConnection, tmp_path: Path) -> None:
+    """Real DECP sets idAccordCadre = id on frameworks and leaves it empty on rows whose
+    nature says 'Marché subséquent' (DATA_QUALITY F-004)."""
+    initial = [r for r in build_rows() if r["modification_id"] == 0]
+    by_uid = {str(r["uid"]): r for r in initial}
+    a, b, c, d = list(by_uid.values())[:4]
+    rows = [
+        {**a, "idAccordCadre": a["id"]},  # a framework referencing itself
+        {**b, "idAccordCadre": "AC-PARENT-1"},  # a call-off of another framework
+        {**c, "nature": "MARCHE SUBSEQUENT"},  # a call-off flagged only by nature
+        {**d, "idAccordCadre": "  "},  # blank
+    ]
+    path = tmp_path / "calloffs.parquet"
+    pq.write_table(pa.table({k: [r.get(k) for r in rows] for k in rows[0]}), path)
+    normalize.build(conn, path)
+    got = dict(conn.execute("SELECT uid, is_call_off FROM awards").fetchall())
+    assert got == {a["uid"]: False, b["uid"]: True, c["uid"]: True, d["uid"]: False}

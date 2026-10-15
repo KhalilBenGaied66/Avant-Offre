@@ -32,7 +32,7 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - `make setup` install deps (uv) · `make lint` ruff + mypy · `make test` pytest ·
   `make lint-workflows` actionlint on CI files
 - `make check-sources` reachability of every data source
-- `make data-sample` / `make data-full` ingest + normalize
+- `make data-sample` / `make data-full` ingest + normalize · `uv run avant-offre data --no-download` rebuild from the snapshots on disk
 - `make quality` regenerate `docs/DATA_QUALITY.md`
 - `make index-sample` / `make index-full` BM25 + vectors
 - `make eval-sample` / `make eval-full` all backtests → `reports/`

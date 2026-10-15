@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from avant_offre.ingest import boamp, manifest, sirene
+from avant_offre.ingest import boamp, decp, manifest, sirene
 from avant_offre.settings import get_settings
 
 
@@ -106,3 +106,19 @@ def test_boamp_export_query_uses_configured_fields() -> None:
     f = get_settings().sources.boamp.fields
     assert url.endswith("/exports/jsonl")
     assert f["published_on"] in params["where"] and "2026-10-15" in params["where"]
+
+
+def test_no_download_reuses_only_a_verified_snapshot() -> None:
+    with pytest.raises(decp.SnapshotMissingError):
+        decp.fetch(use_local=True)  # nothing recorded yet
+    path = decp.raw_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"PAR1 snapshot")
+    client = httpx.Client(
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, content=b"PAR1 snapshot"))
+    )
+    manifest.download("decp", "https://example.test/decp", path, client=client)
+    assert decp.fetch(use_local=True).sha256 == manifest.sha256_file(path)
+    path.write_bytes(b"PAR1 changed on disk")
+    with pytest.raises(decp.SnapshotMissingError):
+        decp.fetch(use_local=True)

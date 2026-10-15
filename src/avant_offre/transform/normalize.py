@@ -147,7 +147,11 @@ def build(conn: duckdb.DuckDBPyConnection, raw: Path) -> dict[str, int]:
             ao_trim(nature) AS nature,
             ao_trim(CAST(techniques AS VARCHAR)) AS techniques,
             ao_is_framework(techniques, nature) AS is_framework,
-            {_optional(cols, "idAccordCadre")} IS NOT NULL AS is_call_off,
+            -- A call-off names a parent framework other than itself (the file also sets
+            -- idAccordCadre = id on frameworks), or says so in `nature` (DATA_QUALITY F-004).
+            (ao_trim({_optional(cols, "idAccordCadre")}) IS NOT NULL
+                AND ao_trim({_optional(cols, "idAccordCadre")}) <> coalesce(ao_trim(id), ''))
+                OR coalesce(lower(nature) LIKE '%subs%quent%', false) AS is_call_off,
             TRY_CAST(montant AS DOUBLE) AS amount_eur,
             {_optional(cols, "montant_anomalie")} AS amount_anomaly,
             TRY_CAST(dureeMois AS DOUBLE) AS duration_months,

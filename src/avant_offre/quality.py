@@ -379,7 +379,37 @@ def section_tenders(conn: duckdb.DuckDBPyConnection) -> list[str]:
             ],
         )
     )
-    out += ["", "Fact coverage by source (share of tenders; eForms first, LLM fallback):", ""]
+    out += ["", "Notice formats (top-level key of `donnees`, DATA_QUALITY F-005):", ""]
+    out.append(
+        table(
+            ["Format", "Tenders", "Share"],
+            [
+                (fmt or "none", c, pct(c, n_t))
+                for fmt, c in _rows(
+                    conn,
+                    "SELECT notice_format, count(*) FROM tenders GROUP BY 1 ORDER BY 2 DESC",
+                )
+            ],
+        )
+    )
+    out += ["", "Buyer SIRET source:", ""]
+    out.append(
+        table(
+            ["Source", "Tenders", "Share"],
+            [
+                (src, c, pct(c, n_t))
+                for src, c in _rows(
+                    conn,
+                    "SELECT buyer_siret_source, count(*) FROM tenders GROUP BY 1 ORDER BY 2 DESC",
+                )
+            ],
+        )
+    )
+    out += [
+        "",
+        "Fact coverage by source (share of tenders; structured fields first, LLM fallback):",
+        "",
+    ]
     by_source = {
         (f, src): c
         for f, src, c in _rows(
@@ -389,9 +419,86 @@ def section_tenders(conn: duckdb.DuckDBPyConnection) -> list[str]:
     }
     rows = []
     for fact in eforms.FACTS:
-        e, llm = by_source.get((fact, "eforms"), 0), by_source.get((fact, "llm"), 0)
-        rows.append((fact, pct(e, n_t), pct(llm, n_t), pct(n_t - e - llm, n_t)))
-    out.append(table(["Fact", "eforms", "llm", "missing"], rows))
+        counts = [by_source.get((fact, src), 0) for src in ("eforms", "national", "llm")]
+        rows.append((fact, *(pct(c, n_t) for c in counts), pct(n_t - sum(counts), n_t)))
+    out.append(table(["Fact", "eforms", "national", "llm", "missing"], rows))
+    out.append("")
+    return out
+
+
+# Raw value sets that drive the normalizers (DATA_QUALITY F-004). Initial rows of the whole
+# file (modification_id = 0), before the sample scope is applied.
+RAW_VALUE_SETS = (
+    ("lieuExecution_typeCode", "lieuExecution_typeCode"),
+    ("titulaire_typeIdentifiant", "titulaire_typeIdentifiant"),
+    ("nature", "nature"),
+    ("techniques", "CAST(techniques AS VARCHAR)"),
+    ("montant_anomalie", "montant_anomalie"),
+    ("titulaire_categorie", "titulaire_categorie"),
+)
+
+
+def section_raw_profile(conn: duckdb.DuckDBPyConnection, raw: Path) -> list[str]:
+    src = f"(SELECT * FROM read_parquet('{raw}') WHERE modification_id = 0)"
+    n = scalar(conn, f"SELECT count(*) FROM {src}")
+    out = ["### Raw DECP value sets (whole file, initial rows)", ""]
+    for label, expr in RAW_VALUE_SETS:
+        rows = _rows(conn, f"SELECT {expr}, count(*) FROM {src} GROUP BY 1 ORDER BY 2 DESC")
+        shown = [(repr(v) if v is not None else "NULL", c, pct(c, n)) for v, c in rows[:20]]
+        if len(rows) > 20:
+            rest = sum(c for _, c in rows[20:])
+            shown.append((f"{len(rows) - 20} other values", rest, pct(rest, n)))
+        out += [
+            f"<details><summary><code>{label}</code>: {len(rows)} distinct values</summary>",
+            "",
+            table(["Value", "Rows", "Share"], shown),
+            "",
+            "</details>",
+            "",
+        ]
+    checks = [
+        ("initial rows", f"SELECT count(*) FROM {src}"),
+        (
+            "codeCPV '12345678' (no check digit)",
+            f"SELECT count(*) FROM {src} WHERE regexp_full_match(codeCPV, '\\d{{8}}')",
+        ),
+        (
+            "codeCPV '12345678-9'",
+            f"SELECT count(*) FROM {src} WHERE regexp_full_match(codeCPV, '\\d{{8}}-\\d')",
+        ),
+        (
+            "codeCPV in another form",
+            f"SELECT count(*) FROM {src} WHERE codeCPV IS NOT NULL "
+            "AND NOT regexp_full_match(codeCPV, '\\d{8}(-\\d)?')",
+        ),
+        ("codeCPV null", f"SELECT count(*) FROM {src} WHERE codeCPV IS NULL"),
+        (
+            "idAccordCadre = id (framework referencing itself)",
+            f"SELECT count(*) FROM {src} WHERE trim(idAccordCadre) = trim(id)",
+        ),
+        (
+            "idAccordCadre = another id (call-off)",
+            f"SELECT count(*) FROM {src} WHERE nullif(trim(idAccordCadre), '') IS NOT NULL "
+            "AND trim(idAccordCadre) <> trim(id)",
+        ),
+        (
+            "nature 'subséquent' with no idAccordCadre",
+            f"SELECT count(*) FROM {src} WHERE lower(nature) LIKE '%subs%quent%' "
+            "AND nullif(trim(idAccordCadre), '') IS NULL",
+        ),
+        (
+            "titulaire_nom masked by the publisher",
+            f"SELECT count(*) FROM {src} WHERE titulaire_nom LIKE '%non-diffusibles%'",
+        ),
+        (
+            "dateNotification before 2000 or after the report date",
+            f"SELECT count(*) FROM {src} WHERE dateNotification < DATE '2000-01-01' "
+            "OR dateNotification > current_date",
+        ),
+    ]
+    out.append(
+        table(["Check", "Rows", "Share"], [(c, v := scalar(conn, q), pct(v, n)) for c, q in checks])
+    )
     out.append("")
     return out
 
@@ -429,26 +536,29 @@ def section_schema(conn: duckdb.DuckDBPyConnection) -> list[str]:
     ]
 
 
-def render(conn: duckdb.DuckDBPyConnection) -> str:
+def render(conn: duckdb.DuckDBPyConnection, raw: Path | None = None) -> str:
     register_macros(conn)
     parts = [provenance_header(), ""]
     parts += section_sources()
     if table_exists(conn, "awards"):
         parts += section_awards(conn)
         parts += section_schema(conn)
+        if raw is not None and raw.exists():
+            parts += section_raw_profile(conn, raw)
     else:
         parts += ["_No awards in the store: run `make data-sample` first._", ""]
     parts += section_tenders(conn)
     return "\n".join(parts)
 
 
-def write(conn: duckdb.DuckDBPyConnection, doc: Path = DOC) -> Path:
+def write(conn: duckdb.DuckDBPyConnection, doc: Path = DOC, raw: Path | None = None) -> Path:
     text = doc.read_text(encoding="utf-8")
     if START not in text or END not in text:
         raise RuntimeError(f"{doc} lacks the GENERATED markers")
     head, rest = text.split(START, 1)
     _, tail = rest.split(END, 1)
-    doc.write_text(head + START + "\n" + render(conn) + "\n" + END + tail, encoding="utf-8")
+    body = render(conn, raw)
+    doc.write_text(head + START + "\n" + body + "\n" + END + tail, encoding="utf-8")
     return doc
 
 

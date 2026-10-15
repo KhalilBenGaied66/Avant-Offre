@@ -39,7 +39,7 @@ DESCRIPTIONS = {
     "free-text profile, with GO/REVIEW/NO-GO bands, and the excluded tenders with their "
     "reasons. week: ISO week such as 2026-W42 (default: the last 7 days).",
     "get_tender": "One open tender: buyer, deadline, CPV, estimated value, and extracted facts "
-    "with their source (eforms, or llm with a verbatim quote).",
+    "with their source (eforms or national notice fields, or llm with a verbatim quote).",
     "match_explanations": "Why a tender matches a company: fit percentile and the 3 past "
     "contracts of the company that explain it best (award uids, titles, dates).",
     "market_stats": "How open the market is for a tender: newcomer share, SME win share, median "
