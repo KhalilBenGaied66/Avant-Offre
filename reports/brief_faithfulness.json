@@ -1,3 +1,475 @@
 {
- "not_run": "no LLM available (missing API key or `--extra llm`)"
+ "models": {
+  "openai/qwen2.5-7b-instruct": {
+   "all": {
+    "clean": 0.04,
+    "removed": 2.06,
+    "fallback": 0.36,
+    "latency": 99004.00991337997,
+    "cost": 0.0,
+    "n": 50.0
+   },
+   "held_out": {
+    "clean": 0.0425531914893617,
+    "removed": 2.0851063829787235,
+    "fallback": 0.3617021276595745,
+    "latency": 98262.69488712763,
+    "cost": 0.0,
+    "n": 47.0
+   },
+   "notices": [
+    {
+     "notice": "26-100028",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 99025.8246389999,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-100270",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 110243.50780700025,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-100330",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 122584.50352799991,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-100454",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 107091.22876200036,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92139",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 93226.34762500002,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92282",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 95202.36411900033,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-92446",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 114003.31102500013,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92521",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 99602.47980299937,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-92640",
+     "clean": 0.0,
+     "removed": 7.0,
+     "fallback": 1.0,
+     "latency": 100385.05701899977,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92807",
+     "clean": 0.0,
+     "removed": 4.0,
+     "fallback": 1.0,
+     "latency": 107949.9092369997,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92822",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 102151.34524699987,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-92863",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 97829.81035099964,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-92929",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 90277.05702000004,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-92970",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 106496.37788699966,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-93554",
+     "clean": 0.0,
+     "removed": 4.0,
+     "fallback": 1.0,
+     "latency": 95402.40410000025,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-94320",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 103640.11206499982,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-94457",
+     "clean": 1.0,
+     "removed": 0.0,
+     "fallback": 0.0,
+     "latency": 89701.5334889993,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-94514",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 109589.14504899985,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-94657",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 90808.75668699991,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-94697",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 121330.63357100036,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-94745",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 95949.9861209997,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-94830",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 96442.45742600015,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-94922",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 100641.87833100004,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-95172",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 93588.65335300015,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-95191",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 92362.34264599989,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-95240",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 109515.46352500009,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-95627",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 90651.74481699978,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-95637",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 89120.27924199993,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-96674",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 104036.24466700057,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97176",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 101225.3240559994,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97196",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 99847.02951300004,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97229",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 112304.27871900065,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97573",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 95977.2288969998,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-97607",
+     "clean": 0.0,
+     "removed": 4.0,
+     "fallback": 1.0,
+     "latency": 103405.93822199936,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-97770",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 80114.77857699993,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97780",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 85459.74153499992,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-97787",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 95521.76564399997,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-97840",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 102032.39147300064,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98112",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 84759.12339800016,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98164",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 111879.87739099935,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98243",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 95307.35010199988,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98428",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 89056.44888100051,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98441",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 91409.5924659996,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-98759",
+     "clean": 1.0,
+     "removed": 0.0,
+     "fallback": 0.0,
+     "latency": 98031.99423500063,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98845",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 103849.76376099985,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-98895",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 97071.89115399978,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-99076",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 100409.22835000037,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    },
+    {
+     "notice": "26-99156",
+     "clean": 0.0,
+     "removed": 2.0,
+     "fallback": 0.0,
+     "latency": 86128.5902010004,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-99319",
+     "clean": 0.0,
+     "removed": 1.0,
+     "fallback": 0.0,
+     "latency": 98841.22566799942,
+     "cost": 0.0,
+     "reason": null
+    },
+    {
+     "notice": "26-99967",
+     "clean": 0.0,
+     "removed": 3.0,
+     "fallback": 1.0,
+     "latency": 88716.17426800003,
+     "cost": 0.0,
+     "reason": "verifier: N sentences removed > 2"
+    }
+   ]
+  }
+ },
+ "n": 50
 }
