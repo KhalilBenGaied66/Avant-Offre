@@ -70,6 +70,36 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Real data: BM25 with a mean profile is the matching default; stronger CPV baseline
+Context: first matching backtest on real awards (sample scope, t0 = 2025-01-01, 500 companies
+stratified by CPV division). The chronological CPV alert feed of SPEC §7.2 is a weak baseline:
+it does not rank, so any ranking method beats it.
+Decision: add `cpv_alert:freq` (same candidates, ranked by how often the company won their CPV
+code, then group, then recency) to the CPV family; the tuning split keeps the stronger variant,
+which becomes the bar for every other method. Ship BM25 with the profile chosen on the tuning
+split, `mean` (`search.profile_strategy`, was `max`). Hybrid, dense and reranker are not
+measured yet (model host blocked), so `search.retrievers` stays `[bm25]` per step 6.
+Alternatives considered: keep only the feed baseline (inflates the gain of every ranking
+method); choose the profile on the test split (leaks the test into a decision).
+Evidence: `reports/matching_baselines.md` — tuning Recall@20 `bm25:mean` 0.281 vs `bm25:max`
+0.209, `cpv_alert:freq` 0.185 vs `cpv_alert` 0.045; test, paired, `bm25:mean` −
+`cpv_alert:freq` = 0.131 [0.097, 0.167]; BM25 ahead in every CPV division (wide intervals for
+divisions 72 and 90). Two runs on the same store gave identical reports.
+Revisit if: `reports/matching.md` (dense, hybrid, reranker) runs: apply step 6 to it.
+
+### 2026-10-16 — Real data: every build and backtest is reproducible
+Context: re-running the matching backtest on the same store and seed changed the company sample.
+DuckDB's `mode()` and `any_value()` follow the scan order, which parallel scans do not fix; the
+awards, companies and backtest strata used them.
+Decision: no aggregate may depend on scan order: `arg_min(col, row_key)` over a row hash for
+awards whose initial rows disagree, a stable mode (most frequent, ties to the smallest value)
+for company attributes, an explicit tie-break for the backtest's main CPV division.
+Alternatives considered: single-threaded DuckDB (slower, and the order would still depend on
+the file's row order).
+Evidence: `tests/test_normalize.py::test_rebuild_is_identical_whatever_the_row_order` (fails on
+the previous code); two consecutive real backtest runs give identical reports.
+Revisit if: a new aggregate is added: it must be order-independent or carry its own tie-break.
+
 ### 2026-10-16 — Real data: one public identifier rule for every output
 Context: the first real run put a sole trader's SIREN next to its pseudonymized label in the
 committed entity-resolution sample. A SIREN finds the person's name in SIRENE, so the label
