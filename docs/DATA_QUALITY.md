@@ -5,6 +5,9 @@ rewritten by `make quality` from the DuckDB store. Numbers only ever come from t
 section.
 
 ## Changelog
+- 2026-10-16 (brief evaluation) — Reading the brief samples exposed a DECP value set that broke
+  two market statistics: dynamic purchasing systems (F-007). They are now excluded from prices
+  and bids received; the price backtest changed, and the IT price band is shown again.
 - 2026-10-16 (real data) — `make data-sample` and `make quality` ran on the real files (DECP
   snapshot of 2026-10-15, BOAMP open notices of 2026-10-16, SIRENE API). Entity resolution
   findings (F-006), a truncated BOAMP export caught and retried (F-005), and a privacy fix
@@ -233,8 +236,29 @@ Source: generated section "Winner identifiers and entity resolution".
   All three now use `privacy.public_key` (a legal person's SIREN, an opaque hash otherwise),
   with tests that fail on the previous behaviour.
 
+### F-007 — Dynamic purchasing systems: symbolic amounts, bids that count candidates (2026-10-16)
+Source: generated section "Amounts and framework agreements" and the `offresRecues` table;
+found through `reports/brief_samples.md`, where a brief stated comparable prices of 0 € and a
+median of 468 bids received.
+- `techniques` contains `Système d'acquisition dynamique` on 641 awards, 626 of them from one
+  buyer (France Télévisions) in IT, consulting and works. An award there admits a supplier to the
+  system: the amount is often symbolic (0.1 € or 0.2 €), and `offresRecues` is 468 on 438 of the
+  640 rows that fill it, the number of admitted candidates rather than bids for a contract.
+- The publisher does not flag these amounts (`montant_anomalie` is empty), so the `> 0` rule
+  kept them. Because one buyer posts hundreds of near-identical titles, they fill lists of
+  comparables: for an insurance tender in the samples (26-92807, commit 249be08), the median of
+  63 usable comparable prices was below 1 €.
+- Decision: `awards.is_dynamic_system` (from `techniques`, computed per award) excludes them from
+  price ranges, the bids-received median, the price backtest and displayed comparable amounts,
+  like framework agreements. They still count as comparables for competitors and shares.
+- Consequence: the IT (CPV 72) price band, withheld on the earlier backtest, meets its coverage
+  targets once they are excluded (`reports/prices.md`, DECISIONS 2026-10-16).
+- Left in place: 316 usable prices below 100 € outside these systems (the generated section),
+  0.5 % of usable prices, spread over many buyers. No floor is set without evidence that
+  they are wrong; quartiles of comparables move little with them.
+
 <!-- GENERATED:START -->
-_Generated 2026-10-16T01:24:27+00:00 · mode `sample` · git `fe6a523220` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T23:20:15+00:00 · mode `sample` · git `70fd4175c0` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 ### Sources (data/manifest.json)
 
@@ -283,8 +307,8 @@ _Generated 2026-10-16T01:24:27+00:00 · mode `sample` · git `fe6a523220` · con
 | UE | 9 | 0.0 % |
 | IREP | 8 | 0.0 % |
 | RIDET | 3 | 0.0 % |
-| FRWF | 1 | 0.0 % |
 | TAHITI | 1 | 0.0 % |
+| FRWF | 1 | 0.0 % |
 
 | link_method | Rows | Share | mean confidence | flagged |
 | --- | --- | --- | --- | --- |
@@ -301,11 +325,13 @@ Hand-check sample: `reports/entity_resolution_sample.csv`.
 | Check | Count | Share of awards |
 | --- | --- | --- |
 | framework agreements (techniques ∋ Accord-cadre) | 21,662 | 24.8 % |
+| dynamic purchasing systems (techniques ∋ Système d'acquisition dynamique; excluded from prices and bids received) | 641 | 0.7 % |
 | call-off contracts (another framework's id, or nature subséquent) | 8,373 | 9.6 % |
 | amount missing | 1,106 | 1.3 % |
 | amount ≤ 0 | 1,324 | 1.5 % |
 | montant_anomalie = suspect | 2,763 | 3.2 % |
 | montant_anomalie = aberrant | 367 | 0.4 % |
+| usable price below 100 € (kept: not flagged by the publisher) | 316 | 0.4 % |
 
 ### CPV codes
 
@@ -368,9 +394,10 @@ Awards per CPV division:
 | price_form | 85,385 | 97.7 % |
 | buyer_siret | 87,406 | 100.0 % |
 
-| offresRecues: n | median | P90 | rows = 0 |
-| --- | --- | --- | --- |
-| 61,194 | 3 | 15 | 348 |
+| offresRecues | n | median | P90 | P99.9 | max | rows = 0 |
+| --- | --- | --- | --- | --- | --- | --- |
+| other awards | 60,554 | 3 | 14 | 132.0 | 999 | 288 |
+| dynamic purchasing systems | 640 | 468.0 | 468.0 | 468.0 | 468 | 60 |
 
 ### Companies and personal data
 

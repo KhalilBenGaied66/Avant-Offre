@@ -142,10 +142,12 @@ nommés à partir de l'historique public : la note donne la part de primo-titula
 calibration, vérifiée par déciles, suit la diagonale au-dessus de 5 % ; en dessous, elle sous-estime
 les marchés les plus fermés (environ 4 % de primo-titulaires observés).
 
-**Fourchette de prix** (`reports/prices.md`, 3 430 attributions) : la fourchette P25–P75 couvre
-48 % des montants réels (cible ≈ 50 %), P10–P90 en couvre 75 % (cible ≈ 80 %). En informatique
-(division 72), elle n'en couvre que 35 % et 50 % : la fourchette n'est plus affichée pour ce
-domaine et le critère de prix de la grille y reste « non évalué », avec la raison.
+**Fourchette de prix** (`reports/prices.md`, 3 347 attributions) : la fourchette P25–P75 couvre
+49,5 % des montants réels (cible ≈ 50 %), P10–P90 en couvre 76,9 % (cible ≈ 80 %). Les systèmes
+d'acquisition dynamique sont exclus des prix et du nombre d'offres : leurs montants sont souvent
+symboliques (0,1 €) et leur « nombre d'offres » compte les candidats admis (`docs/DATA_QUALITY.md`,
+F-007). Ce sont eux qui faisaient échouer l'informatique (division 72, d'abord masquée) : sans
+eux, elle atteint les cibles (53,8 % et 75,0 %) et sa fourchette est de nouveau affichée.
 
 **Modèles d'embeddings** (`reports/embed_bench.md`, échantillon de réglage, 101 entreprises) :
 seuls, les trois modèles testés font moins bien que BM25 sur les mêmes entreprises.

@@ -70,6 +70,30 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Dynamic purchasing systems leave price and bid statistics; IT prices shown again
+Context: a brief in the faithfulness samples (`reports/brief_samples.md` at 249be08, notice
+26-92807) stated comparable prices of 0 € and a median of 468 bids received. Both came from
+DECP awards of dynamic purchasing systems (DATA_QUALITY F-007): symbolic amounts, and an
+`offresRecues` that counts admitted candidates. The IT price band had been withheld on a price
+backtest that still contained them.
+Decision: `awards.is_dynamic_system` excludes these awards from price ranges, the bids-received
+median, the price backtest and displayed amounts, like framework agreements. The withholding
+rule, a judgment on one gross miss until now, is written down: a division's band is withheld
+when both its coverage intervals exclude their targets. IT now meets both targets, so
+`intel.price_unreliable_divisions` is empty; the mechanism stays.
+Alternatives considered: a floor on plausible amounts (no evidence where to set it; usable
+prices below 100 € are 0.5 % of the total); keeping IT withheld for another run (the revisit
+condition written with that decision is met).
+Evidence: `reports/prices.md` — all divisions, [P25, P75] 0.483 → 0.495 [0.479, 0.512] and
+[P10, P90] 0.751 → 0.769 [0.755, 0.783] (3,430 → 3,347 awards); IT 0.349 → 0.538 [0.462, 0.622]
+and 0.500 → 0.750 [0.686, 0.814], median off by ×6.77 → ×2.22 (238 → 156 awards). Division 90
+meets the [P25, P75] target and misses [P10, P90] by 0.001 at the top of its interval (0.724
+[0.642, 0.799]): shown. Tests: `tests/test_normalize.py::test_dynamic_purchasing_system`,
+`tests/test_intel_score.py::test_price_range_excludes_frameworks_and_aberrant`,
+`::test_bids_received_ignores_zero_missing_and_dynamic_systems`.
+Revisit if: both intervals of a division exclude their targets in a later run, or another
+`techniques` value turns out to carry amounts that are not a spend.
+
 ### 2026-10-16 — The LLM path is free by default and provider-neutral
 Context: the project must run without paying per token, and a company adopting it will bring
 its own endpoint (a GPU it runs, or managed models in its own cloud tenant) with its own data
@@ -137,6 +161,8 @@ Revisit if: the hybrid backtest shows a gain that depends on the embedding model
 texts (longer than award titles) become the matching input.
 
 ### 2026-10-16 — Real data: no price band where the backtest says it fails
+_Superseded for IT by "Dynamic purchasing systems leave price and bid statistics" (above): the IT
+miss came mostly from those awards._
 Context: `reports/prices.md` on real awards. Overall the bands are close to target ([P25, P75]
 covers 0.483 [0.466, 0.499] of actual amounts, target ≈ 0.5; [P10, P90] 0.751 [0.736, 0.764],
 target ≈ 0.8). CPV division 72 (IT) is far off: 0.349 and 0.500, median off by a factor ~6.8.
