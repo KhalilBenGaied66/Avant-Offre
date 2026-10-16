@@ -146,6 +146,19 @@ def number_matches(n: Number, fact: Fact) -> bool:
     return abs(fn.value - n.value) <= n.precision + eps * max(1.0, abs(fn.value))
 
 
+# Why sentences fail, without the sentence-specific details (evaluation report).
+REASON_KINDS = {
+    "unknown citation": "cites a fact id that does not exist",
+    "number without citation": "number without citation",
+    "matches no cited fact": "number matches no cited fact",
+    "grid says": "recommendation contradicts the grid",
+}
+
+
+def reason_kind(reason: str) -> str:
+    return next((kind for key, kind in REASON_KINDS.items() if key in reason), reason)
+
+
 @dataclass
 class Removed:
     section: str

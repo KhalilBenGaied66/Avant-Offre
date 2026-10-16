@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -155,6 +156,42 @@ def test_brief_eval_reports_held_out_notices_and_fallback_reasons(
     stats = out["models"][writer_model]
     assert stats["held_out"]["n"] == stats["all"]["n"] - 1
     assert stats["all"]["fallback"] == 1.0
+
+
+def test_brief_eval_breaks_removed_sentences_down_by_reason(
+    store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    writer_model = gateway.get_models().tasks["brief_writer"].model
+    monkeypatch.setattr(
+        gateway,
+        "unavailable_reason",
+        lambda task, model=None: None if model == writer_model else "no key",
+    )
+
+    def sloppy(task: str, messages: list[dict[str, str]], model: str | None = None) -> Any:
+        band = json.loads(messages[1]["content"])["recommandation_de_la_grille"]
+        text = (
+            f"## Recommandation\n{band}.\n## Pourquoi\n- Il reste 999 jours.\n"
+            "## Concurrence\n- Trois rivaux [F99].\n## Prix\n- Voir le marché.\n"
+            "## Points à vérifier\n- Lire le règlement."
+        )
+        return gateway.LLMResult(text, writer_model, 50, 5, 1.0, 0.0, "stop", "h")
+
+    monkeypatch.setattr(gateway, "complete", sloppy)
+    reset_caches()
+    out = brief_faithfulness.run(store, today=TODAY)
+    text = Path(out["report"]).read_text(encoding="utf-8")
+    assert "number without citation" in text
+    assert "cites a fact id that does not exist" in text
+    stats = out["models"][writer_model]
+    assert stats["all"]["removed"] == 2.0 and stats["all"]["fallback"] == 0.0
+    assert all(
+        r["removed_kinds"]
+        == {"number without citation": 1, "cites a fact id that does not exist": 1}
+        for r in stats["notices"]
+    )
+    samples = (Path(out["report"]).parent / "brief_samples.md").read_text(encoding="utf-8")
+    assert "Removed by the verifier" in samples and "Il reste 999 jours." in samples
 
 
 def test_summary_lists_unrun_backtests(store: duckdb.DuckDBPyConnection) -> None:

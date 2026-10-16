@@ -21,6 +21,7 @@ from typing import Any
 import duckdb
 import numpy as np
 
+from avant_offre.brief import verifier
 from avant_offre.eval import common
 from avant_offre.llm import gateway
 from avant_offre.service import Engine
@@ -78,6 +79,7 @@ def run(
     dev = set(s.eval.brief_dev_notices)
     rows: list[tuple[Any, ...]] = []
     reasons_rows: list[tuple[Any, ...]] = []
+    removed_rows: list[tuple[Any, ...]] = []
     samples: list[tuple[str, Any, Any]] = []
     per_model: dict[str, dict[str, Any]] = {}
     for model in usable:
@@ -95,6 +97,9 @@ def run(
                     "latency": b.latency_ms or 0.0,
                     "cost": b.cost_usd or 0.0,
                     "reason": _reason(b.fallback_reason),
+                    "removed_kinds": dict(
+                        Counter(verifier.reason_kind(r.reason) for r in b.removed)
+                    ),
                 }
             )
             if model == usable[0] and len(samples) < s.eval.brief_review_samples:
@@ -110,6 +115,15 @@ def run(
             rows.append(_row(model, "held out", held_out))
         counts = Counter(r["reason"] for r in records if r["fallback"])
         reasons_rows += [(f"`{model}`", reason, n) for reason, n in counts.most_common()]
+        kinds: Counter[str] = Counter()
+        briefs_with: Counter[str] = Counter()
+        for r in records:
+            kinds.update(r["removed_kinds"])
+            briefs_with.update(r["removed_kinds"].keys())
+        removed_rows += [
+            (f"`{model}`", kind, n, f"{100 * briefs_with[kind] / len(records):.0f} %")
+            for kind, n in kinds.most_common()
+        ]
     body = [
         "## Setup",
         "",
@@ -145,6 +159,12 @@ def run(
         "an unverified number. Fallback reasons:",
         "",
         common.md_table(["Model", "reason", "briefs"], reasons_rows) if reasons_rows else "_none_",
+        "",
+        "Sentences the verifier removed, by reason (a brief may lose several):",
+        "",
+        common.md_table(["Model", "reason", "sentences", "briefs with at least one"], removed_rows)
+        if removed_rows
+        else "_none_",
         "",
         "Full briefs for manual review: `reports/brief_samples.md`.",
         "",
@@ -200,8 +220,26 @@ def _write_samples(samples: list[tuple[str, Any, Any]]) -> None:
             f"Model `{b.model}` · fallback `{b.fallback}` ({b.fallback_reason or '—'}) · "
             f"removed sentences {len(b.removed)}",
             "",
+            *(
+                ["_The model's draft failed; the reader gets the template below._", ""]
+                if b.fallback
+                else []
+            ),
             b.text,
             "",
+            *(
+                [
+                    "Removed by the verifier:",
+                    "",
+                    common.md_table(
+                        ["section", "sentence", "reason"],
+                        [(r.section, r.sentence.replace("|", "\\|"), r.reason) for r in b.removed],
+                    ),
+                    "",
+                ]
+                if b.removed
+                else []
+            ),
             "<details><summary>Facts</summary>",
             "",
             common.md_table(
