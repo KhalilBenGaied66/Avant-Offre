@@ -34,7 +34,24 @@ Règles impératives :
   ({band}) ; tu ne la changes jamais.
 - Cite les titres de contrats entre « ».
 - {max_words} mots au maximum.
-Réponds avec la note seule, en Markdown, sans préambule."""
+Réponds avec la note seule, en Markdown, sans préambule. Recopie exactement ce squelette, dans cet
+ordre, et complète chaque section par une à trois phrases courtes. N'écris jamais deux fois la même
+phrase.
+
+## Recommandation
+{band}. <une phrase qui cite les faits décisifs>
+
+## Pourquoi
+- <adéquation et références, avec citations>
+
+## Concurrence
+- <concurrents probables et ouverture du marché, avec citations>
+
+## Prix
+- <fourchette de prix des comparables, avec citations>
+
+## Points à vérifier
+- <date limite et critères non évalués, avec citations>"""
 
 
 @dataclass

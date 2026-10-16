@@ -131,6 +131,32 @@ def test_brief_eval_refuses_to_report_without_llm(store: duckdb.DuckDBPyConnecti
     assert "No number is reported" in Path(out["report"]).read_text(encoding="utf-8")
 
 
+def test_brief_eval_reports_held_out_notices_and_fallback_reasons(
+    store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    writer_model = gateway.get_models().tasks["brief_writer"].model
+    monkeypatch.setattr(
+        gateway,
+        "unavailable_reason",
+        lambda task, model=None: None if model == writer_model else "no key",
+    )
+
+    def short(task: str, messages: list[dict[str, str]], model: str | None = None) -> Any:
+        return gateway.LLMResult(
+            "## Recommandation\nGO.", writer_model, 50, 5, 1.0, 0.0, "stop", "h"
+        )
+
+    monkeypatch.setattr(gateway, "complete", short)
+    monkeypatch.setenv("AVANT_OFFRE_EVAL__BRIEF_DEV_NOTICES", '["T1"]')
+    reset_caches()
+    out = brief_faithfulness.run(store, today=TODAY)
+    text = Path(out["report"]).read_text(encoding="utf-8")
+    assert "held out" in text and "missing sections" in text
+    stats = out["models"][writer_model]
+    assert stats["held_out"]["n"] == stats["all"]["n"] - 1
+    assert stats["all"]["fallback"] == 1.0
+
+
 def test_summary_lists_unrun_backtests(store: duckdb.DuckDBPyConnection) -> None:
     text = report.run().read_text(encoding="utf-8")
     assert "Not run" in text or "not run" in text
