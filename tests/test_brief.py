@@ -15,6 +15,7 @@ from avant_offre.intel.stats import Stat
 from avant_offre.llm import gateway
 from avant_offre.score.scorecard import CriterionResult, ScoreResult
 from avant_offre.search.matcher import Explanation, Match
+from avant_offre.settings import get_scorecard
 
 TODAY = date(2026, 10, 15)
 
@@ -139,6 +140,20 @@ def test_sentence_checks(sentence: str, ok: bool) -> None:
         c1=k["competitor_1"],
     )
     assert (verifier.check_sentence(s, facts.by_id()) is None) is ok
+
+
+def test_band_cutoffs_are_citable_facts() -> None:
+    """The writer explained bands with invented cut-offs: the real ones are now facts."""
+    facts = full_facts()
+    i = ids(facts)
+    by_id = facts.by_id()
+    go, review = by_id[i["band_go"]], by_id[i["band_review"]]
+    assert (go.value, review.value) == (get_scorecard().bands.go, get_scorecard().bands.review)
+    real = f"Seuil REVIEW : {review.display} [{review.id}], seuil GO : {go.display} [{go.id}]."
+    invented = f"Le score reste sous le seuil GO de 0,99 [{go.id}]."
+    assert verifier.check_sentence(real, by_id) is None
+    assert verifier.check_sentence(invented, by_id) is not None
+    assert i["band_go"] in template.render(facts)
 
 
 def test_failing_sentence_is_removed_not_rewritten() -> None:

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from avant_offre.intel.market import MarketIntel
 from avant_offre.score.scorecard import ScoreResult
 from avant_offre.search.matcher import Match
+from avant_offre.settings import get_scorecard
 
 Unit = Literal["EUR", "%", "count", "days", "date", "score", "text", "band", "code"]
 
@@ -154,6 +155,17 @@ def _score_facts(bf: BriefFacts, score: ScoreResult, notice_id: str) -> None:
         bf.add(
             "score", "Score de la grille (0 à 1)", "score", score.total, fr_score(score.total), nid
         )
+        # The band's cut-offs: without them the writer explains the band with invented ones
+        # (reports/brief_samples.md, first runs). Values from config/scorecard.yaml, no source.
+        bands = get_scorecard().bands
+        bf.add("band_go", "Score minimal pour GO", "score", bands.go, fr_score(bands.go))
+        bf.add(
+            "band_review",
+            "Score minimal pour REVIEW (en dessous : NO-GO)",
+            "score",
+            bands.review,
+            fr_score(bands.review),
+        )
     if score.not_assessed:
         labels = ", ".join(c.label for c in score.criteria if not c.assessed)
         bf.add("not_assessed", "Critères non évalués", "text", labels, labels, nid)
@@ -190,7 +202,7 @@ def _competition_facts(bf: BriefFacts, intel: MarketIntel, top: int) -> None:
     if refs is not None and refs.value is not None:
         bf.add(
             "references",
-            "Références similaires de l'entreprise",
+            "Nombre de références similaires de l'entreprise",
             "count",
             refs.value,
             fr_int(refs.value),
@@ -198,7 +210,7 @@ def _competition_facts(bf: BriefFacts, intel: MarketIntel, top: int) -> None:
         )
     bf.add(
         "n_comparables",
-        "Contrats comparables analysés",
+        "Nombre de contrats comparables analysés",
         "count",
         intel.n_comparables,
         fr_int(intel.n_comparables),
@@ -230,7 +242,7 @@ def _competition_facts(bf: BriefFacts, intel: MarketIntel, top: int) -> None:
         )
         bf.add(
             "newcomer_n",
-            "Contrats comparables pris en compte (nouveaux entrants)",
+            "Nombre de contrats comparables sur lesquels la part de primo-titulaires est calculée",
             "count",
             ns.n,
             fr_int(ns.n),
@@ -258,7 +270,7 @@ def _competition_facts(bf: BriefFacts, intel: MarketIntel, top: int) -> None:
     if intel.bids_received.value is not None:
         bf.add(
             "bids_median",
-            "Offres reçues (médiane des comparables)",
+            "Nombre médian d'offres reçues sur les contrats comparables",
             "count",
             intel.bids_received.value,
             fr_int(intel.bids_received.value),
@@ -278,7 +290,7 @@ def _price_facts(bf: BriefFacts, intel: MarketIntel) -> None:
             bf.add(key, label, "EUR", value, fr_eur(value), pr.sources)
     bf.add(
         "price_n",
-        "Contrats comparables avec un prix exploitable",
+        "Nombre de contrats comparables avec un prix exploitable",
         "count",
         pr.n,
         fr_int(pr.n),

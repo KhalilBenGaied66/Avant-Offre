@@ -12,7 +12,7 @@ from avant_offre.brief.facts import BriefFacts
 
 TEMPLATE = """\
 ## Recommandation
-{{ band }}.{% if f.score %} Score de la grille : {{ f.score.display }} [{{ f.score.id }}].{% endif %}
+{{ band }}.{% if f.score %} Score de la grille : {{ f.score.display }} [{{ f.score.id }}] (GO à partir de {{ f.band_go.display }} [{{ f.band_go.id }}], REVIEW à partir de {{ f.band_review.display }} [{{ f.band_review.id }}]).{% endif %}
 {%- if f.hard_stops %} Critère d'arrêt : {{ f.hard_stops.display }} [{{ f.hard_stops.id }}].{% endif %}
 
 ## Pourquoi
