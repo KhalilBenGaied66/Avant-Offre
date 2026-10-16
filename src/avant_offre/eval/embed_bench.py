@@ -99,6 +99,15 @@ def run(
         )
         ctx.cache.pop(f"embedder:{model}", None)  # free the model before loading the next
 
+    # Reference: the shipped lexical matcher on the same companies (no model, no index).
+    reference = f"bm25:{s.search.profile_strategy}"
+    ref_results = evaluate(ctx, cases, [reference])[reference]
+    ref_keys = [c.company_key for c in cases if c.positives]
+    ref = {
+        m: bootstrap([ref_results[k][m] for k in ref_keys], s.eval.bootstrap_resamples, s.seed)
+        for m in ("recall@20", "ndcg@20")
+    }
+
     valid = [r for r in rows if not np.isnan(r["recall@20"].mean)]
     recommended = None
     if valid:
@@ -140,6 +149,10 @@ def run(
             ],
         ),
         "",
+        f"Reference, same companies: `{reference}` (shipped matcher) Recall@20 "
+        f"{ref['recall@20'].fmt()}, nDCG@20 {ref['ndcg@20'].fmt()}. A model that scores below it "
+        "alone can still help in the hybrid; that is tested in `reports/matching.md`.",
+        "",
         "## Selection rule",
         "",
         f"Fastest model whose tuning Recall@20 is within {s.eval.embed_tolerance} of the best: "
@@ -155,6 +168,13 @@ def run(
     ]
     path = common.write_report("embed_bench.md", "Embedding model benchmark", body)
     payload = [{**r, "recall@20": r["recall@20"].mean, "ndcg@20": r["ndcg@20"].mean} for r in rows]
-    common.write_json("embed_bench.json", {"rows": payload, "recommended": recommended})
+    common.write_json(
+        "embed_bench.json",
+        {
+            "rows": payload,
+            "recommended": recommended,
+            "reference": {"method": reference, **{m: e.mean for m, e in ref.items()}},
+        },
+    )
     common.record_run(conn, "embed_bench", timer, path, {"recommended": recommended})
     return {"report": str(path), "recommended": recommended}

@@ -100,6 +100,7 @@ def test_embed_bench_harness(ctx: bm.Context) -> None:
     )
     text = Path(out["report"]).read_text(encoding="utf-8")
     assert "Selection rule" in text and "s / 1,000 texts" in text
+    assert "Reference, same companies: `bm25:" in text
 
 
 def test_vectors_embed_only_what_a_run_reads(ctx: bm.Context) -> None:
