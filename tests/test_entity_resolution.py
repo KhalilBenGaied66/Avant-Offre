@@ -46,6 +46,23 @@ def test_link_by_identifier_order() -> None:
     assert known is not None and known.method == "siren" and known.confidence < 1
 
 
+def test_siren_link_establishment_tie_goes_to_the_smallest_siret() -> None:
+    """Two known establishments with one win each: the pick must not follow input order."""
+    siren = make_siret(9)[:9]
+    a, b = (luhn_complete(siren + suffix) for suffix in ("0002", "0001"))
+    broken = a[:-1] + str((int(a[-1]) + 1) % 10)
+    picks = set()
+    for order in ((a, b), (b, a)):
+        links = {
+            er.WinnerRef(s, "SIRET", "X", "75"): er.Link("exact", 1.0, siren=siren, siret=s)
+            for s in order
+        }
+        ref = er.WinnerRef(broken, "SIRET", "X", "75")
+        er._siren_links([ref], links)
+        picks.add(links[ref].siret)
+    assert picks == {min(a, b)}
+
+
 def _add_winner(conn: duckdb.DuckDBPyConnection, uid: str, wid: str | None, name: str) -> None:
     conn.execute(
         """

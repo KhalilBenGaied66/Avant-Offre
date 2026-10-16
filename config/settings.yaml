@@ -99,9 +99,10 @@ intel:
   top_competitors: 10
   references_similarity: 0.5  # normalized similarity above which a past win counts as a reference
   min_price_n: 5              # fewer usable comparables => price range not assessed
-  # Price bands not shown for these CPV divisions: in reports/prices.md (2026-10-16) division 72
-  # covered 50 % of actual amounts with [P10, P90] (target 80 %), median off by a factor ~6.8.
-  price_unreliable_divisions: ["72"]
+  # Price bands not shown for these CPV divisions: those whose coverage intervals in
+  # reports/prices.md both exclude their targets (DECISIONS). IT (72) was listed until dynamic
+  # purchasing systems were excluded from prices; it now meets both targets.
+  price_unreliable_divisions: []
   display_comparables: 20     # comparables listed in the tender view
 
 eval:

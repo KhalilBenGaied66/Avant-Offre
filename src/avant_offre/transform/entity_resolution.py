@@ -192,7 +192,8 @@ def _siren_links(refs: list[WinnerRef], links: dict[WinnerRef, Link]) -> None:
             continue
         known = siret_by_siren_dept.get((found.siren or "", ref.dept or ""))
         if known:
-            found.siret = known.most_common(1)[0][0]
+            # Ties go to the smallest SIRET: `most_common` would follow scan order.
+            found.siret = min(known.items(), key=lambda kv: (-kv[1], kv[0]))[0]
         links[ref] = found
 
 

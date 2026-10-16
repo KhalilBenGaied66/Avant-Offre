@@ -188,7 +188,8 @@ def awards(
             engine.conn,
             """
             SELECT a.uid, a.notified_on, a.buyer_name, a.objet, a.cpv, a.exec_dept,
-                   CASE WHEN a.is_framework THEN NULL ELSE a.amount_eur END AS amount_eur,
+                   CASE WHEN a.is_framework OR a.is_dynamic_system THEN NULL
+                        ELSE a.amount_eur END AS amount_eur,
                    a.is_framework,
                    list(DISTINCT n.display_name) FILTER (WHERE n.display_name IS NOT NULL)
                        AS winners

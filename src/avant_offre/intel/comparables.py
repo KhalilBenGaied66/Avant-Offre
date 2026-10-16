@@ -26,7 +26,7 @@ from avant_offre.store.vectors import VectorStore, to_day
 
 FIELDS = (
     "uid, notified_on, buyer_siret, buyer_name, objet, cpv, exec_dept, amount_eur, "
-    "is_framework, amount_anomaly, bids_received"
+    "is_framework, amount_anomaly, bids_received, is_dynamic_system"
 )
 
 
@@ -44,6 +44,7 @@ class Comparable:
     is_framework: bool
     amount_anomaly: str | None
     bids_received: int | None
+    is_dynamic_system: bool = False
 
 
 class ComparablesIndex:
@@ -152,6 +153,7 @@ class ComparablesIndex:
                     is_framework=bool(r[8]),
                     amount_anomaly=r[9],
                     bids_received=r[10],
+                    is_dynamic_system=bool(r[11]),
                 )
             )
             if len(out) >= k:

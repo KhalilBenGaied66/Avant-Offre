@@ -83,7 +83,7 @@ def compute(
                 notified_on=c.notified_on,
                 buyer_name=c.buyer_name,
                 objet=c.objet,
-                amount_eur=None if c.is_framework else c.amount_eur,
+                amount_eur=None if c.is_framework or c.is_dynamic_system else c.amount_eur,
                 is_framework=c.is_framework,
             )
             for c in comps[: cfg.display_comparables]
@@ -92,7 +92,7 @@ def compute(
         newcomer_share=stats.newcomer_share(conn, uids, cfg.left_censor_months),
         price_range=prices.price_range(comps, division=division),
         sme_share=stats.sme_share(conn, uids),
-        bids_received=stats.bids_received([(c.uid, c.bids_received) for c in comps]),
+        bids_received=stats.bids_received(comps),
         buyer_top_winner_share=Stat(
             value=None if share is None else 100.0 * share,
             n=n_buyer,

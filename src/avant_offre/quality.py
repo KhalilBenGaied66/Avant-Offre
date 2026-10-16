@@ -190,6 +190,11 @@ def section_awards(conn: duckdb.DuckDBPyConnection) -> list[str]:
                         scalar(conn, "SELECT count(*) FROM awards WHERE is_framework"),
                     ),
                     (
+                        "dynamic purchasing systems (techniques ∋ Système d'acquisition "
+                        "dynamique; excluded from prices and bids received)",
+                        scalar(conn, "SELECT count(*) FROM awards WHERE is_dynamic_system"),
+                    ),
+                    (
                         "call-off contracts (another framework's id, or nature subséquent)",
                         scalar(conn, "SELECT count(*) FROM awards WHERE is_call_off"),
                     ),
@@ -211,6 +216,15 @@ def section_awards(conn: duckdb.DuckDBPyConnection) -> list[str]:
                         "montant_anomalie = aberrant",
                         scalar(
                             conn, "SELECT count(*) FROM awards WHERE amount_anomaly = 'aberrant'"
+                        ),
+                    ),
+                    (
+                        "usable price below 100 € (kept: not flagged by the publisher)",
+                        scalar(
+                            conn,
+                            "SELECT count(*) FROM awards WHERE amount_eur > 0 "
+                            "AND amount_eur < 100 AND NOT is_framework AND NOT is_dynamic_system "
+                            "AND coalesce(amount_anomaly, '') <> 'aberrant'",
                         ),
                     ),
                 ]
@@ -326,10 +340,12 @@ def section_awards(conn: duckdb.DuckDBPyConnection) -> list[str]:
     out.append("")
     bids = _rows(
         conn,
-        "SELECT count(bids_received), median(bids_received), quantile_cont(bids_received, 0.9), "
-        "count(*) FILTER (WHERE bids_received = 0) FROM awards",
-    )[0]
-    out.append(table(["offresRecues: n", "median", "P90", "rows = 0"], [bids]))
+        "SELECT CASE WHEN is_dynamic_system THEN 'dynamic purchasing systems' ELSE 'other awards' "
+        "END, count(bids_received), median(bids_received), quantile_cont(bids_received, 0.9), "
+        "quantile_cont(bids_received, 0.999), max(bids_received), "
+        "count(*) FILTER (WHERE bids_received = 0) FROM awards GROUP BY 1 ORDER BY 1 DESC",
+    )
+    out.append(table(["offresRecues", "n", "median", "P90", "P99.9", "max", "rows = 0"], bids))
     out.append("")
 
     out += ["### Companies and personal data", ""]
