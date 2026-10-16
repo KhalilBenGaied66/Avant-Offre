@@ -9,12 +9,13 @@ via un agent. La décision reste au comité.
 Projet de portfolio (AI Engineer / Forward Deployed Engineer). Le code, le journal de décisions
 et les rapports d'évaluation sont faits pour être relus.
 
-> **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte), mais **aucun chiffre
-> mesuré sur les données réelles n'est encore publié** : depuis l'environnement de développement,
-> les hôtes de données (data.gouv.fr, BOAMP, API SIRENE, Hugging Face) étaient bloqués par la
-> politique réseau (`reports/check_sources.md`). Les rapports seront produits par
-> `make data-sample quality eval-sample` dès que ces hôtes sont accessibles. Aucun résultat n'a
-> été estimé ou inventé à leur place.
+> **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte). Les données
+> réelles sont ingérées sur le périmètre échantillon (DECP du 15/10/2026, avis BOAMP ouverts du
+> 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`, généré par `make quality`.
+> **Les backtests n'ont pas encore tourné : aucun chiffre d'évaluation n'est publié**, et aucun
+> n'a été estimé à leur place. Depuis l'environnement de développement, Hugging Face reste
+> bloqué (`reports/check_sources.md`) : les embeddings et le reranker ne peuvent pas encore être
+> mesurés.
 
 ## Le besoin
 
@@ -51,25 +52,32 @@ flowchart LR
 
 ## Ce que j'ai observé
 
-Constats issus du schéma publié par le producteur des DECP consolidées
-(`ColinMaudry/decp-processing`, `reference/schema_base.json`) ; ils seront confrontés au fichier
-réel au premier téléchargement, qui échoue bruyamment si une colonne attendue manque.
-Détail : `docs/DATA_QUALITY.md` (F-001, F-002).
+Constats tirés des fichiers réels ; chaque point renvoie à `docs/DATA_QUALITY.md` (F-001 à
+F-006), dont les volumes et les taux sont générés par `make quality`.
 
 - **Les DECP sont déjà enrichies avec SIRENE** (catégorie PME / ETI / GE, code NAF, département du
-  titulaire) : inutile de retélécharger ces champs.
-- **La catégorie juridique n'est pas publiée** : détecter les entrepreneurs individuels (des
-  personnes physiques) demande toujours SIRENE. Le producteur masque les personnes
-  non diffusibles, mais pas les entrepreneurs individuels diffusibles.
-- **Les accords-cadres** portent un montant plafond, pas une dépense : ils sont identifiés par
-  `techniques` et exclus des statistiques de prix, comme les montants signalés `aberrant`.
-- **Le lieu d'exécution** arrive sous 7 formats (code postal, commune, arrondissement, canton
-  avec une espace parasite dans l'énumération, département, région, pays).
-- **Les seuils** : les DECP ne couvrent que les marchés au-dessus de 40 000 € HT ; une entreprise
-  qui n'a gagné que des petits marchés y paraît nouvelle.
-
-Les volumes, taux de liaison, couverture des champs et doublons seront générés par
-`make quality` dans `docs/DATA_QUALITY.md`.
+  titulaire), mais **pas la catégorie juridique** : détecter les entrepreneurs individuels (des
+  personnes physiques) demande toujours l'API SIRENE.
+- **Les énumérations publiées ne sont pas celles du fichier** : le type de lieu d'exécution
+  arrive sous une vingtaine de graphies (`Code postal`, `CODE POSTAL`, `Code departement`…),
+  `nature` mélange majuscules et marchés subséquents, et `idAccordCadre` pointe aussi vers la
+  ligne elle-même. Les normaliseurs sont testés sur ces valeurs réelles.
+- **Une grande part des avis BOAMP n'est pas en eForms** mais dans les formats nationaux
+  (`FNSimple`, `MAPA`) : sans un second analyseur, ces avis n'avaient ni CPV, ni date limite, ni
+  durée. Dans les eForms, le SIRET de l'acheteur est une référence vers une autre balise, et la
+  première durée trouvée pouvait être la validité des offres, pas celle du marché.
+- **Les critères d'attribution sont surtout dans le règlement de la consultation**, pas dans
+  l'avis : un fait « manquant » est le plus souvent une vraie absence, que ni l'analyseur ni le
+  LLM ne peuvent combler.
+- **Les titulaires non liés n'ont pas de nom** dans le fichier (le producteur le remplit depuis
+  SIRENE) : le rapprochement approché n'a rien à comparer, ils restent non liés plutôt que
+  devinés.
+- **Un SIREN d'entrepreneur individuel suffit à retrouver son nom** : il est remplacé par un
+  identifiant opaque dans toutes les sorties (rapports, API, MCP, démo), règle testée.
+- **Les accords-cadres** portent un montant plafond, pas une dépense : ils sont exclus des
+  statistiques de prix, comme les montants signalés `aberrant`. Les DECP ne couvrent que les
+  marchés au-dessus de 40 000 € HT : une entreprise qui n'a gagné que des petits marchés y paraît
+  nouvelle.
 
 ## Les décisions
 

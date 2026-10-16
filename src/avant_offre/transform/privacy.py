@@ -61,3 +61,21 @@ def display_name(name: str | None, key: str, natural_person: bool | None) -> str
     if natural_person is True:
         return f"Entreprise individuelle #{hash6(key)}"
     return f"Titulaire non vérifié #{hash6(key)}"
+
+
+def public_key(key: str, natural_person: bool | None) -> str:
+    """An identifier safe to show outside the store.
+
+    A legal person keeps its own key (its SIREN, public company data). A natural person, or a
+    winner whose status is unknown, gets an opaque hash: a sole trader's SIREN finds the
+    person's name in SIRENE. ``PUBLIC_KEY_SQL`` is the same rule in DuckDB.
+    """
+    if natural_person is False:
+        return key
+    return "anon-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+
+
+PUBLIC_KEY_SQL = (
+    "CASE WHEN {natural} IS NOT DISTINCT FROM false THEN {key} "
+    "ELSE 'anon-' || substr(sha256({key}), 1, 12) END"
+)

@@ -67,14 +67,16 @@ NATIONAL_TEXT_FIELDS = (
 
 
 def notice_text(objet: str | None, raw_json: str | None) -> str:
-    """Free text of a notice: title, eForms Description elements, national free-text fields."""
+    """Free text of a notice: title, eForms free-text elements, national free-text fields."""
     parts = [objet or ""]
     if raw_json:
         record: Any = json.loads(raw_json)
         donnees = record.get("donnees") if isinstance(record, dict) else None
         doc: Any = json.loads(donnees) if isinstance(donnees, str) else donnees
         if doc is not None:
-            for name in ("Description", *NATIONAL_TEXT_FIELDS):
+            # eForms free text: descriptions, and award criteria written as a formula or a
+            # paragraph (`CalculationExpression`, BT-543).
+            for name in ("Description", "CalculationExpression", *NATIONAL_TEXT_FIELDS):
                 parts += [t for d in eforms.find_all(doc, name) if (t := eforms.text_of(d))]
     return "\n".join(p for p in parts if p)
 

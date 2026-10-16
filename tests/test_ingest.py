@@ -122,3 +122,18 @@ def test_no_download_reuses_only_a_verified_snapshot() -> None:
     path.write_bytes(b"PAR1 changed on disk")
     with pytest.raises(decp.SnapshotMissingError):
         decp.fetch(use_local=True)
+
+
+def test_boamp_fetch_retries_a_truncated_export() -> None:
+    full = b"".join(
+        json.dumps({"idweb": f"26-{i}", "objet": "x"}).encode() + b"\n" for i in range(3)
+    )
+    bodies = [full[:-15], full]  # first response is cut mid-record, without an HTTP error
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=bodies.pop(0))
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    path = boamp.fetch(date(2026, 10, 16), client=client)
+    assert path.read_bytes() == full
+    assert bodies == []

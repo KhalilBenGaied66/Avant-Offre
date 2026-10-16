@@ -125,8 +125,9 @@ option, pas une dépendance.
 
 ## 7. Ce qui manque avant un pilote
 
-1. Faire tourner `make data-sample quality index-sample eval-sample` sur un réseau ouvert et
-   relire les rapports (aucun chiffre n'est encore publié).
+1. Faire tourner `make index-sample eval-sample` (les données réelles sont ingérées et décrites
+   dans `docs/DATA_QUALITY.md`) et relire les rapports : aucun chiffre d'évaluation n'est encore
+   publié.
 2. Selon `reports/matching.md`, garder BM25 ou passer à l'hybride (une entrée datée dans
    `docs/DECISIONS.md`).
 3. Relire les 10 notes de `reports/brief_samples.md` et marquer le fichier comme relu.

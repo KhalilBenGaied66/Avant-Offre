@@ -61,7 +61,7 @@ export interface Stat {
 }
 
 export interface Competitor {
-  company_key: string;
+  public_id: string;
   name: string;
   score: number;
   comparable_wins: number;

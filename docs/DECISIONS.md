@@ -70,6 +70,36 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Real data: one public identifier rule for every output
+Context: the first real run put a sole trader's SIREN next to its pseudonymized label in the
+committed entity-resolution sample. A SIREN finds the person's name in SIRENE, so the label
+protected nothing. The same internal key was serialized in competitor lists (API, MCP tool
+results sent to the client's LLM) and kept in the demo export (DATA_QUALITY F-006).
+Decision: `privacy.public_key` is the only identifier that leaves the store: the SIREN of a
+confirmed legal person, an opaque `anon-<hash12>` otherwise (unknown status fails closed).
+`Competitor.company_key` stays internal (the competitor backtest compares it to the real winner)
+and is excluded from serialization; outputs carry `public_id`. The demo export rewrites every
+key column through the same rule (`PUBLIC_KEY_SQL`, tested equal to the Python function).
+Alternatives considered: drop identifiers from outputs altogether (the review page and agents
+need a stable id per competitor); reuse the 6-character display hash as the key (collisions
+become likely at a few thousand sole traders).
+Evidence: `tests/test_privacy.py::test_review_sample_hides_sole_trader_siren`,
+`::test_public_key_sql_matches_python`, `tests/test_demo.py` (both fail on the previous code).
+Revisit if: the DPO accepts showing the SIREN of sole traders to authenticated internal users
+(it is public data, but the rule in SPEC §4.6 is about not exposing natural persons).
+
+### 2026-10-16 — Real data: a download is complete only when its content says so
+Context: the BOAMP JSONL export was cut mid-record by the egress proxy without any HTTP error;
+the file looked complete until the parse step (DATA_QUALITY F-005).
+Decision: `boamp.fetch` checks that the export ends with a newline and that its last record
+parses; otherwise it raises a transport error, which the existing retry policy handles. The
+DECP Parquet already had a checksum and resumable download; Parquet's footer makes a cut file
+unreadable rather than silently short.
+Alternatives considered: compare the line count with the API's `total_count` (a second request
+whose count moves while notices are published; used once by hand to confirm the retried pull).
+Evidence: `tests/test_ingest.py::test_boamp_fetch_retries_a_truncated_export`.
+Revisit if: BOAMP is pulled through a paginated API instead of the export.
+
 ### 2026-10-15 — Real data: rebuild from the recorded snapshot when a source is flaky
 Context: on the first real run, `www.data.gouv.fr` reset every connection for minutes at a time
 while the DECP file (downloaded an hour earlier, checksum in `data/manifest.json`) sat on disk.

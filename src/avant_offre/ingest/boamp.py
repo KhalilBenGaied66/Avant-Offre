@@ -49,6 +49,24 @@ def export_url(today: date) -> tuple[str, dict[str, str]]:
     return f"{s.api_base}/exports/jsonl", {"where": where}
 
 
+def check_complete(path: Path) -> None:
+    """Raise a (retryable) transport error when the export was cut short.
+
+    A tunnel closed mid-stream can end the response without an HTTP error, leaving a file whose
+    last record is truncated (DATA_QUALITY F-005). A complete JSONL export ends with a newline
+    and its last line parses.
+    """
+    data = path.read_bytes()
+    if not data:
+        return
+    try:
+        if not data.endswith(b"\n"):
+            raise ValueError
+        json.loads(data.rstrip(b"\n").rsplit(b"\n", 1)[-1])
+    except ValueError:
+        raise httpx.ReadError(f"truncated BOAMP export ({len(data)} bytes): {path}") from None
+
+
 def fetch(today: date | None = None, client: httpx.Client | None = None) -> Path:
     s = get_settings()
     today = today or date.today()
@@ -63,6 +81,7 @@ def fetch(today: date | None = None, client: httpx.Client | None = None) -> Path
             with dest.open("wb") as fh:
                 for chunk in resp.iter_bytes():
                     fh.write(chunk)
+            check_complete(dest)
             return str(resp.url)
 
     if client is not None:

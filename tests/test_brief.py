@@ -59,6 +59,7 @@ def full_facts(band: str = "REVIEW") -> bf.BriefFacts:
         competitors=[
             Competitor(
                 company_key="1",
+                public_id="1",
                 name="3M SERVICES",
                 score=1.0,
                 comparable_wins=4,
