@@ -59,6 +59,7 @@ class BriefFacts(BaseModel):
     company_key: str | None
     band: str
     facts: list[Fact] = Field(default_factory=list)
+    price_note: str | None = None  # why no price range is given, when the reason is not n
 
     def by_id(self) -> dict[str, Fact]:
         return {f.id: f for f in self.facts}
@@ -267,6 +268,7 @@ def _competition_facts(bf: BriefFacts, intel: MarketIntel, top: int) -> None:
 
 def _price_facts(bf: BriefFacts, intel: MarketIntel) -> None:
     pr = intel.price_range
+    bf.price_note = pr.note
     if pr.p25 is not None and pr.p50 is not None and pr.p75 is not None:
         for key, label, value in (
             ("price_p25", "Prix des comparables, 1er quartile", pr.p25),

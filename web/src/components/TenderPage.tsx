@@ -29,7 +29,7 @@ function intelRows(intel: MarketIntel): Row[] {
   add(
     "pr",
     "Fourchette de prix P25 – P75 (médiane)",
-    p.p50 == null ? `non évaluée (n = ${p.n})` : `${fmtEur(p.p25)} – ${fmtEur(p.p75)} (${fmtEur(p.p50)}), n = ${p.n}`,
+    p.p50 == null ? `non évaluée (${p.note ?? `n = ${p.n}`})` : `${fmtEur(p.p25)} – ${fmtEur(p.p75)} (${fmtEur(p.p50)}), n = ${p.n}`,
     p.sources,
   );
   const sme = intel.sme_share;

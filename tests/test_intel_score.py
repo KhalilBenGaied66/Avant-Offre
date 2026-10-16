@@ -13,7 +13,7 @@ from avant_offre.intel.market import MarketIntel
 from avant_offre.intel.prices import PriceRange, price_range
 from avant_offre.intel.stats import Stat, bids_received
 from avant_offre.score import scorecard
-from avant_offre.settings import get_scorecard
+from avant_offre.settings import get_scorecard, reset_caches
 
 
 def comp(
@@ -50,6 +50,28 @@ def test_price_range_excludes_frameworks_and_aberrant() -> None:
 def test_price_range_not_assessed_below_min_n() -> None:
     pr = price_range([comp("a", 1.0), comp("b", 2.0)], min_n=5)
     assert not pr.assessed and pr.n == 2
+
+
+def test_price_range_withheld_for_divisions_that_failed_the_backtest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AVANT_OFFRE_INTEL__PRICE_UNRELIABLE_DIVISIONS", '["72"]')
+    reset_caches()
+    comps = [comp(f"u{i}", float(100 * (i + 1))) for i in range(9)]
+    withheld = price_range(comps, min_n=5, division="72")
+    assert not withheld.assessed and withheld.note and withheld.n == 9
+    assert price_range(comps, min_n=5, division="45").assessed
+    assert price_range(comps, min_n=5).assessed  # the backtest measures the raw method
+    t = scorecard.TenderInputs(
+        notice_id="T",
+        deadline_on=date(2026, 12, 1),
+        estimated_value_eur=150.0,
+        dept="75",
+        fit_percentile=0.9,
+    )
+    r = scorecard.score(t, _intel(price_range=withheld), date(2026, 10, 15))
+    price = next(c for c in r.criteria if c.id == "price_realism")
+    assert price.value is None and not price.assessed and price.note == withheld.note
 
 
 def test_bids_received_ignores_zero_and_missing() -> None:

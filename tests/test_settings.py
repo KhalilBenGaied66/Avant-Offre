@@ -42,3 +42,15 @@ def test_model_prefixes() -> None:
     emb = st.get_models().embeddings
     assert emb.prefix("intfloat/multilingual-e5-small", "query") == "query: "
     assert emb.prefix("unknown/model", "passage") == ""
+
+
+def test_config_hash_ignores_operational_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    st.reset_caches()
+    before = st.config_hash()
+    monkeypatch.setenv("AVANT_OFFRE_HTTP__RETRIES", "15")
+    monkeypatch.setenv("AVANT_OFFRE_HTTP__TIMEOUT_S", "120")
+    st.reset_caches()
+    assert st.config_hash() == before
+    monkeypatch.setenv("AVANT_OFFRE_INTEL__K_COMPARABLES", "50")
+    st.reset_caches()
+    assert st.config_hash() != before  # a result-affecting change does move the hash

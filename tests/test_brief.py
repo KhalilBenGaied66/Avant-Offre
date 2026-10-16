@@ -10,7 +10,7 @@ from avant_offre.brief import facts as bf
 from avant_offre.brief import template, verifier, writer
 from avant_offre.intel.competitors import Competitor
 from avant_offre.intel.market import MarketIntel
-from avant_offre.intel.prices import PriceRange
+from avant_offre.intel.prices import UNRELIABLE_NOTE, PriceRange
 from avant_offre.intel.stats import Stat
 from avant_offre.llm import gateway
 from avant_offre.score.scorecard import CriterionResult, ScoreResult
@@ -206,3 +206,13 @@ def test_writer_without_llm_uses_template() -> None:
 def test_cost_estimate_uses_configured_prices() -> None:
     assert gateway.estimate_cost("anthropic/claude-sonnet-5-5", 1_000_000, 100_000) == 3.0
     assert gateway.estimate_cost("unknown/model", 10, 10) is None
+
+
+def test_withheld_price_range_says_why_and_still_verifies() -> None:
+    facts = full_facts()
+    facts.facts = [f for f in facts.facts if not f.key.startswith("price_p")]
+    facts.price_note = UNRELIABLE_NOTE
+    text = template.render(facts)
+    assert UNRELIABLE_NOTE in text and "trop peu de comparables" not in text
+    v = verifier.verify(text, facts, max_removed=0, max_words=250)
+    assert not v.fallback and not v.removed
