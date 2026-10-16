@@ -79,6 +79,7 @@ export interface PriceRange {
   p90: number | null;
   n: number;
   sources: string[];
+  note: string | null;
 }
 
 export interface MarketIntel {

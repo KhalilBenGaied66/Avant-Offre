@@ -47,6 +47,8 @@ TEMPLATE = """\
 ## Prix
 {%- if f.price_p50 %}
 - Fourchette P25–P75 des comparables : {{ f.price_p25.display }} à {{ f.price_p75.display }}, médiane {{ f.price_p50.display }} [{{ f.price_p25.id }}, {{ f.price_p75.id }}, {{ f.price_p50.id }}], sur {{ f.price_n.display }} contrats [{{ f.price_n.id }}].
+{%- elif price_note %}
+- Fourchette de prix non évaluée : {{ price_note }}.
 {%- else %}
 - Fourchette de prix non évaluée : trop peu de comparables avec un prix exploitable{% if f.price_n %}, {{ f.price_n.display }} [{{ f.price_n.id }}]{% endif %}.
 {%- endif %}
@@ -82,4 +84,6 @@ def render(facts: BriefFacts) -> str:
             return self.get(name)
 
     competitors = [by_key[k] for k in sorted(by_key) if k.startswith("competitor_")]
-    return _template.render(band=facts.band, f=_F(by_key), competitors=competitors)
+    return _template.render(
+        band=facts.band, f=_F(by_key), competitors=competitors, price_note=facts.price_note
+    )

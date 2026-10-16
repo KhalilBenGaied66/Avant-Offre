@@ -119,6 +119,8 @@ def _price(p: dict[str, float], t: TenderInputs, intel: MarketIntel | None, toda
     if v is None or v <= 0:
         return None, None, "no estimated value in the notice"
     pr = intel.price_range if intel else None
+    if pr is not None and pr.note:
+        return v, None, pr.note
     if pr is None or pr.p25 is None or pr.p75 is None:
         return v, None, f"price range not assessed (n = {pr.n if pr else 0})"
     return v, price_realism(v, pr.p25, pr.p75, p.get("zero_at_factor", 4.0)), None

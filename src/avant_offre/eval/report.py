@@ -52,15 +52,16 @@ def _matching_section(data: dict[str, Any] | None, name: str) -> list[str]:
 
 
 def run() -> Path:
-    matching = _load("matching.json") or _load("matching_baselines.json")
+    full = _load("matching.json")
+    matching = full or _load("matching_baselines.json")
     competitors = _load("competitors.json")
     prices = _load("prices.json")
     embed = _load("embed_bench.json")
     briefs = _load("brief_faithfulness.json")
-    body = ["## Matching — hybrid vs CPV alerts", ""]
-    body += _matching_section(
-        matching, "matching.json" if _load("matching.json") else "matching_baselines.json"
-    )
+    # Name what was measured: without matching.json only the baselines (CPV alerts, BM25) ran.
+    title = "hybrid vs CPV alerts" if full else "BM25 vs CPV alerts (dense and hybrid not run)"
+    body = [f"## Matching — {title}", ""]
+    body += _matching_section(matching, "matching.json" if full else "matching_baselines.json")
     body += ["## Competitor prediction", ""]
     if competitors:
         body += [

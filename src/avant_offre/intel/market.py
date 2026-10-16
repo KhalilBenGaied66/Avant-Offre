@@ -56,6 +56,7 @@ def compute(
     buyer_siret: str | None,
     company_key: str | None = None,
     depts: list[str] | None = None,
+    division: str | None = None,
 ) -> MarketIntel:
     cfg = get_settings().intel
     comps: list[Comparable] = index.search(text, ref_date, depts=depts)
@@ -89,7 +90,7 @@ def compute(
         ],
         competitors=model.predict(comps, ref_date, buyer_siret, exclude=company_key),
         newcomer_share=stats.newcomer_share(conn, uids, cfg.left_censor_months),
-        price_range=prices.price_range(comps),
+        price_range=prices.price_range(comps, division=division),
         sme_share=stats.sme_share(conn, uids),
         bids_received=stats.bids_received([(c.uid, c.bids_received) for c in comps]),
         buyer_top_winner_share=Stat(
@@ -112,7 +113,7 @@ def for_tender(
     today: date | None = None,
 ) -> MarketIntel:
     row = conn.execute(
-        "SELECT objet, buyer_siret FROM tenders WHERE notice_id = ?", [notice_id]
+        "SELECT objet, buyer_siret, cpv_division FROM tenders WHERE notice_id = ?", [notice_id]
     ).fetchone()
     if row is None:
         raise KeyError(f"unknown notice {notice_id}")
@@ -125,4 +126,5 @@ def for_tender(
         ref_date=today or date.today(),
         buyer_siret=row[1],
         company_key=company_key,
+        division=row[2],
     )

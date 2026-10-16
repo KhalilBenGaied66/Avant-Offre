@@ -157,6 +157,9 @@ class IntelConfig(BaseModel):
     references_similarity: float = 0.5
     min_price_n: int = 5
     display_comparables: int = 20
+    # CPV divisions whose price bands missed their coverage target in reports/prices.md: the
+    # range is reported as not assessed there rather than shown with false precision.
+    price_unreliable_divisions: list[str] = Field(default_factory=list)
 
 
 class EvalConfig(BaseModel):
@@ -352,10 +355,16 @@ def get_models() -> ModelsConfig:
     return ModelsConfig.model_validate(_load_yaml("models.yaml"))
 
 
+# Settings that cannot change a result (where files live, network retries and timeouts, API
+# serving): left out of the hash, so a run with more retries on a flaky network still reports
+# the same configuration.
+OPERATIONAL_SETTINGS = {"api_key", "paths", "http", "api"}
+
+
 def config_hash() -> str:
-    """Short hash of the effective configuration (settings + scorecard + models)."""
+    """Short hash of the result-affecting configuration (settings + scorecard + models)."""
     payload = {
-        "settings": get_settings().model_dump(mode="json", exclude={"api_key"}),
+        "settings": get_settings().model_dump(mode="json", exclude=OPERATIONAL_SETTINGS),
         "scorecard": get_scorecard().model_dump(mode="json"),
         "models": get_models().model_dump(mode="json"),
     }

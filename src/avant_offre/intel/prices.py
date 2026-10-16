@@ -25,6 +25,7 @@ class PriceRange(BaseModel):
     n: int = 0
     sources: list[str] = Field(default_factory=list)
     excluded_frameworks: int = 0
+    note: str | None = None  # why the range is not assessed, when it is not
 
     @property
     def assessed(self) -> bool:
@@ -40,10 +41,26 @@ def usable(c: Comparable) -> bool:
     )
 
 
-def price_range(comparables: Sequence[Comparable], min_n: int | None = None) -> PriceRange:
-    min_n = get_settings().intel.min_price_n if min_n is None else min_n
+UNRELIABLE_NOTE = "fourchette non fiable pour ce domaine (backtest de prix, reports/prices.md)"
+
+
+def price_range(
+    comparables: Sequence[Comparable], min_n: int | None = None, division: str | None = None
+) -> PriceRange:
+    """Quantiles of usable comparables. ``division`` is the tender's CPV division: divisions
+    listed in ``intel.price_unreliable_divisions`` get no range (the backtest measures the raw
+    method and does not pass it)."""
+    cfg = get_settings().intel
+    min_n = cfg.min_price_n if min_n is None else min_n
     kept = [c for c in comparables if usable(c)]
     frameworks = sum(1 for c in comparables if c.is_framework)
+    if division is not None and division in cfg.price_unreliable_divisions:
+        return PriceRange(
+            n=len(kept),
+            sources=[c.uid for c in kept],
+            excluded_frameworks=frameworks,
+            note=UNRELIABLE_NOTE,
+        )
     if len(kept) < max(1, min_n):
         return PriceRange(
             n=len(kept), sources=[c.uid for c in kept], excluded_frameworks=frameworks
