@@ -1,10 +1,10 @@
 # Price range backtest
 
-_Generated 2026-10-16T01:38:56+00:00 · mode `sample` · git `fe6a523220-dirty` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T23:24:07+00:00 · mode `sample` · git `70fd4175c0-dirty` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 ## Setup
 
-- Test window [2025-01-01, 2026-01-01): 3,453 awards with a usable amount (framework agreements, `aberrant` amounts and amounts ≤ 0 excluded).
+- Test window [2025-01-01, 2026-01-01): 3,370 awards with a usable amount (framework agreements, dynamic purchasing systems, `aberrant` amounts and amounts ≤ 0 excluded).
 - Prediction: quantiles of comparable awards notified before 2025-01-01 (top 100 by BM25, same exclusions); at least 5 usable comparables required. Not assessed: 23 awards.
 
 ## Results
@@ -13,10 +13,10 @@ Targets: [P25, P75] covers ≈ 50 % of actual amounts, [P10, P90] ≈ 80 %. Medi
 
 | CPV division | n | coverage [P25, P75] | coverage [P10, P90] | median |log error| | factor |
 | --- | --- | --- | --- | --- | --- |
-| all | 3430 | 0.483 [0.466, 0.499] | 0.751 [0.736, 0.764] | 0.840 | ×2.32 |
-| 45 | 2717 | 0.490 [0.471, 0.510] | 0.772 [0.756, 0.788] | 0.795 | ×2.21 |
-| 72 | 238 | 0.349 [0.286, 0.412] | 0.500 [0.433, 0.559] | 1.912 | ×6.77 |
-| 79 | 341 | 0.504 [0.452, 0.560] | 0.771 [0.721, 0.812] | 0.981 | ×2.67 |
+| all | 3347 | 0.495 [0.479, 0.512] | 0.769 [0.755, 0.783] | 0.815 | ×2.26 |
+| 45 | 2717 | 0.490 [0.471, 0.510] | 0.772 [0.756, 0.788] | 0.794 | ×2.21 |
+| 72 | 156 | 0.538 [0.462, 0.622] | 0.750 [0.686, 0.814] | 0.796 | ×2.22 |
+| 79 | 340 | 0.506 [0.450, 0.556] | 0.771 [0.724, 0.815] | 0.963 | ×2.62 |
 | 90 | 134 | 0.515 [0.440, 0.597] | 0.724 [0.642, 0.799] | 0.989 | ×2.69 |
 
 ## Caveats
