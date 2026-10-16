@@ -11,6 +11,21 @@ import duckdb
 
 from avant_offre.transform.privacy import display_name, is_natural_person
 
+MODE_COLUMNS = ("winner_siret", "winner_name_raw", "winner_naf", "winner_size", "winner_dept")
+
+
+def stable_mode(col: str) -> str:
+    """Most frequent non-null value of ``col``, ties broken by the smallest value.
+
+    DuckDB's ``mode()`` breaks ties by scan order, which parallel scans do not fix, so two builds
+    of the same data could name a company differently. Needs an ``n_<col>`` window count.
+    """
+    return f"first({col} ORDER BY n_{col} DESC, {col}) FILTER (WHERE {col} IS NOT NULL)"
+
+
+def _counts(partition: str, cols: tuple[str, ...]) -> str:
+    return ", ".join(f"count(*) OVER (PARTITION BY {partition}, {c}) AS n_{c}" for c in cols)
+
 
 def build_companies(conn: duckdb.DuckDBPyConnection) -> int:
     """SIREN-level companies: DECP's own SIRENE enrichment + legal category from SIRENE."""
@@ -28,15 +43,20 @@ def build_companies(conn: duckdb.DuckDBPyConnection) -> int:
     )
     rows = conn.execute(
         f"""
-        WITH w AS (
-            SELECT winner_siren AS siren,
-                   mode(winner_siret) AS siret,
-                   mode(winner_name_raw) AS name,
-                   mode(winner_naf) AS naf,
-                   mode(winner_size) AS decp_size,
-                   mode(winner_dept) AS dept
+        WITH counted AS (
+            SELECT winner_siren AS siren, winner_siret, winner_name_raw, winner_naf, winner_size,
+                   winner_dept, {_counts("winner_siren", MODE_COLUMNS)}
             FROM award_winners WHERE winner_siren IS NOT NULL
-            GROUP BY winner_siren
+        ),
+        w AS (
+            SELECT siren,
+                   {stable_mode("winner_siret")} AS siret,
+                   {stable_mode("winner_name_raw")} AS name,
+                   {stable_mode("winner_naf")} AS naf,
+                   {stable_mode("winner_size")} AS decp_size,
+                   {stable_mode("winner_dept")} AS dept
+            FROM counted
+            GROUP BY siren
         )
         SELECT w.siren, w.siret, w.name, w.naf,
                coalesce(w.decp_size, r.size_category) AS size_category,
@@ -76,14 +96,18 @@ def build_companies(conn: duckdb.DuckDBPyConnection) -> int:
 
 def build_company_names(conn: duckdb.DuckDBPyConnection) -> int:
     rows = conn.execute(
-        """
+        f"""
+        WITH w AS (
+            SELECT company_key, winner_name_raw,
+                   {_counts("company_key", ("winner_name_raw",))}
+            FROM award_winners WHERE company_key IS NOT NULL
+        )
         SELECT w.company_key, any_value(c.name) AS company_name,
-               mode(w.winner_name_raw) AS raw_name,
+               {stable_mode("winner_name_raw")} AS raw_name,
                any_value(c.is_natural_person) AS natural,
                any_value(c.legal_category) AS legal_category,
                bool_or(c.siren IS NOT NULL) AS is_siren
-        FROM award_winners w LEFT JOIN companies c ON c.siren = w.company_key
-        WHERE w.company_key IS NOT NULL
+        FROM w LEFT JOIN companies c ON c.siren = w.company_key
         GROUP BY w.company_key
         """
     ).fetchall()

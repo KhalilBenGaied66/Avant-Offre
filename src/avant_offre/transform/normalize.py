@@ -197,38 +197,47 @@ def build(conn: duckdb.DuckDBPyConnection, raw: Path) -> dict[str, int]:
         SELECT d.* FROM decp_located d JOIN in_scope USING (uid)
         """
     )
+    # When the initial rows of an award disagree, each field takes its first non-null value in
+    # a fixed row order (hash of the row), so two builds of the same file are identical.
+    # (`any_value` follows scan order, which parallel scans do not fix.)
+    conn.execute(
+        """
+        CREATE OR REPLACE TEMP VIEW decp_rows_keyed AS
+        SELECT d.*, md5(CAST(d AS VARCHAR)) AS row_key FROM decp_rows d
+        """
+    )
     conn.execute(
         """
         CREATE OR REPLACE TABLE awards AS
         SELECT
             uid,
-            any_value(contract_id) AS contract_id,
-            any_value(buyer_siret) AS buyer_siret,
-            any_value(buyer_name) AS buyer_name,
-            any_value(objet) AS objet,
-            any_value(cpv) AS cpv,
-            any_value(cpv_division) AS cpv_division,
-            any_value(procedure) AS procedure,
-            any_value(nature) AS nature,
-            any_value(techniques) AS techniques,
+            arg_min(contract_id, row_key) AS contract_id,
+            arg_min(buyer_siret, row_key) AS buyer_siret,
+            arg_min(buyer_name, row_key) AS buyer_name,
+            arg_min(objet, row_key) AS objet,
+            arg_min(cpv, row_key) AS cpv,
+            arg_min(cpv_division, row_key) AS cpv_division,
+            arg_min(procedure, row_key) AS procedure,
+            arg_min(nature, row_key) AS nature,
+            arg_min(techniques, row_key) AS techniques,
             bool_or(is_framework) AS is_framework,
             bool_or(is_call_off) AS is_call_off,
-            any_value(amount_eur) AS amount_eur,
-            any_value(amount_anomaly) AS amount_anomaly,
-            any_value(duration_months) AS duration_months,
+            arg_min(amount_eur, row_key) AS amount_eur,
+            arg_min(amount_anomaly, row_key) AS amount_anomaly,
+            arg_min(duration_months, row_key) AS duration_months,
             min(notified_on) AS notified_on,
-            any_value(exec_dept) AS exec_dept,
-            any_value(exec_dept_source) AS exec_dept_source,
-            any_value(location_code_raw) AS location_code_raw,
-            any_value(location_type_raw) AS location_type_raw,
-            any_value(buyer_dept) AS buyer_dept,
-            any_value(bids_received) AS bids_received,
-            any_value(price_form) AS price_form,
-            any_value(source_dataset) AS source_dataset,
+            arg_min(exec_dept, row_key) AS exec_dept,
+            arg_min(exec_dept_source, row_key) AS exec_dept_source,
+            arg_min(location_code_raw, row_key) AS location_code_raw,
+            arg_min(location_type_raw, row_key) AS location_type_raw,
+            arg_min(buyer_dept, row_key) AS buyer_dept,
+            arg_min(bids_received, row_key) AS bids_received,
+            arg_min(price_form, row_key) AS price_form,
+            arg_min(source_dataset, row_key) AS source_dataset,
             count(DISTINCT coalesce(winner_id_raw, winner_name_raw)) AS n_winners,
             count(DISTINCT objet) AS n_distinct_objet,
             count(DISTINCT amount_eur) AS n_distinct_amount
-        FROM decp_rows
+        FROM decp_rows_keyed
         WHERE modification_id = 0
         GROUP BY uid
         """
@@ -241,17 +250,17 @@ def build(conn: duckdb.DuckDBPyConnection, raw: Path) -> dict[str, int]:
             winner_id_raw,
             regexp_replace(coalesce(winner_id_raw, ''), '[\\s.\\-]', '', 'g') AS winner_id,
             winner_id_type,
-            any_value(winner_name_raw) AS winner_name_raw,
-            any_value(winner_size) AS winner_size,
-            any_value(winner_naf) AS winner_naf,
-            any_value(winner_dept) AS winner_dept,
+            arg_min(winner_name_raw, row_key) AS winner_name_raw,
+            arg_min(winner_size, row_key) AS winner_size,
+            arg_min(winner_naf, row_key) AS winner_naf,
+            arg_min(winner_dept, row_key) AS winner_dept,
             CAST(NULL AS VARCHAR) AS winner_siret,
             CAST(NULL AS VARCHAR) AS winner_siren,
             CAST(NULL AS VARCHAR) AS company_key,
             'none' AS link_method,
             CAST(NULL AS DOUBLE) AS link_confidence,
             false AS link_flagged
-        FROM decp_rows
+        FROM decp_rows_keyed
         WHERE modification_id = 0 AND (winner_id_raw IS NOT NULL OR winner_name_raw IS NOT NULL)
         GROUP BY uid, winner_id_raw, winner_id_type
         """
