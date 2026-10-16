@@ -244,7 +244,11 @@ class Engine:
             today=self.today,
             company_key=prof.company_key,
         )
+        if not persist or self.app_conn is None:
+            return writer.write(bf, model=model), bf
+        key = writer.cache_key(bf, model)
+        if (hit := writer.cached(self.app_conn, key)) is not None:
+            return hit, bf
         b = writer.write(bf, model=model)
-        if persist and self.app_conn is not None:
-            writer.store(self.app_conn, b, bf)
+        writer.store(self.app_conn, b, bf, key)
         return b, bf

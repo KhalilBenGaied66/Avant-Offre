@@ -89,6 +89,9 @@ def ensure_eval_tables(conn: duckdb.DuckDBPyConnection) -> None:
 
 def ensure_app_tables(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute(APP_TABLES_DDL)
+    # Added after the first release: existing app databases gain the columns in place.
+    for column, kind in (("cache_key", "VARCHAR"), ("removed", "JSON"), ("latency_ms", "DOUBLE")):
+        conn.execute(f"ALTER TABLE briefs ADD COLUMN IF NOT EXISTS {column} {kind}")
 
 
 @contextmanager

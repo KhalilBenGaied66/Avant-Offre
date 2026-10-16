@@ -14,6 +14,7 @@ import duckdb
 import pytest
 
 from avant_offre import settings as st
+from avant_offre.llm import gateway
 from tests.fixtures import write_decp_fixture
 
 
@@ -24,6 +25,10 @@ def isolated_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterat
     monkeypatch.setenv("AVANT_OFFRE_PATHS__REPORTS_DIR", str(tmp_path / "reports"))
     monkeypatch.setenv("AVANT_OFFRE_MODE", "sample")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    # Never reach a real LLM server from tests, even if one runs on this machine (port 9:
+    # nothing listens); tests that need a model fake the gateway.
+    monkeypatch.setenv("AVANT_OFFRE_LLM_API_BASE", "http://127.0.0.1:9/v1")
+    gateway._health.clear()
     st.reset_caches()
     yield
     st.reset_caches()

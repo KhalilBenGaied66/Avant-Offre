@@ -8,6 +8,7 @@ and fallback (SPEC §6.9), and every call is traced.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -50,6 +51,27 @@ class Brief:
     output_tokens: int = 0
     cost_usd: float | None = None
     latency_ms: float | None = None
+
+
+def cache_key(facts: BriefFacts, model: str | None = None) -> str:
+    """Same facts, model settings, prompt and verifier limits give the same brief: a stored one
+    is returned instead of calling the model again (the weekly batch and every reviewer opening
+    the same tender share it)."""
+    task = gateway.settings_for("brief_writer", model)
+    cfg = get_settings().brief
+    blob = json.dumps(
+        {
+            "facts": facts.model_dump(mode="json"),
+            "model": task.model,
+            "max_tokens": task.max_tokens,
+            "temperature": task.temperature,
+            "prompt": hashlib.sha256(SYSTEM.encode("utf-8")).hexdigest(),
+            "verifier": [cfg.max_words, cfg.max_removed],
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:32]
 
 
 def messages_for(facts: BriefFacts) -> list[dict[str, str]]:
@@ -120,10 +142,19 @@ def write(facts: BriefFacts, *, model: str | None = None) -> Brief:
     return brief
 
 
-def store(conn: duckdb.DuckDBPyConnection, brief: Brief, facts: BriefFacts) -> None:
+def store(
+    conn: duckdb.DuckDBPyConnection, brief: Brief, facts: BriefFacts, key: str | None = None
+) -> None:
+    """Persist a brief. ``key`` makes it reusable; a brief written because no model answered
+    is stored without one, so the next request tries the model again."""
     ensure_app_tables(conn)
     conn.execute(
-        "INSERT INTO briefs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        """
+        INSERT INTO briefs (brief_id, notice_id, company_key, created_at, model, input_tokens,
+            output_tokens, cost_usd, removed_sentences, fallback, fallback_reason, text, facts,
+            cache_key, removed, latency_ms)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
         [
             brief.brief_id,
             brief.notice_id,
@@ -138,5 +169,37 @@ def store(conn: duckdb.DuckDBPyConnection, brief: Brief, facts: BriefFacts) -> N
             brief.fallback_reason,
             brief.text,
             facts.model_dump_json(),
+            key if brief.model is not None else None,
+            json.dumps([vars(r) for r in brief.removed], ensure_ascii=False),
+            brief.latency_ms,
         ],
+    )
+
+
+def cached(conn: duckdb.DuckDBPyConnection, key: str) -> Brief | None:
+    ensure_app_tables(conn)
+    row = conn.execute(
+        """
+        SELECT brief_id, notice_id, company_key, text, model, fallback, fallback_reason, removed,
+               input_tokens, output_tokens, cost_usd, latency_ms
+        FROM briefs WHERE cache_key = ? ORDER BY created_at DESC LIMIT 1
+        """,
+        [key],
+    ).fetchone()
+    if row is None:
+        return None
+    removed = [verifier.Removed(**r) for r in json.loads(row[7] or "[]")]
+    return Brief(
+        brief_id=row[0],
+        notice_id=row[1],
+        company_key=row[2],
+        text=row[3],
+        model=row[4],
+        fallback=bool(row[5]),
+        fallback_reason=row[6],
+        removed=removed,
+        input_tokens=int(row[8] or 0),
+        output_tokens=int(row[9] or 0),
+        cost_usd=row[10],
+        latency_ms=row[11],
     )

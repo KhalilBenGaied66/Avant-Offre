@@ -12,9 +12,11 @@ import duckdb
 import pytest
 from fastapi.testclient import TestClient
 from mcp.client.client import Client
+from typer.testing import CliRunner
 
 from avant_offre.agent.mcp_server import create_server
 from avant_offre.api import app as api_module
+from avant_offre.cli import app as cli_app
 from avant_offre.digest import adaptive_card, digest
 from avant_offre.service import Engine
 from avant_offre.settings import get_settings, reset_caches
@@ -176,3 +178,21 @@ def test_mcp_session_calls_every_tool(store_file: Path) -> None:
     assert results["bid_brief"]["fallback"] is True  # type: ignore[index]
     payload = json.dumps(results)
     assert "CAMILLE" not in payload  # personal data rule holds through the agent tools
+
+
+def test_weekly_brief_batch_command(tmp_path: Path) -> None:
+    """`avant-offre briefs` caches the week's briefs in the app store (no model: templates)."""
+    s = get_settings()
+    s.db_path.parent.mkdir(parents=True, exist_ok=True)
+    with duckdb.connect(str(s.db_path)) as c:
+        build_store(c, tmp_path)
+        add_tenders(c, tmp_path, date.today())
+        alpha = c.execute(
+            "SELECT company_key FROM company_names WHERE display_name = 'ALPHA INFORMATIQUE'"
+        ).fetchone()
+    assert alpha is not None
+    result = CliRunner().invoke(cli_app, ["briefs", "--siret", alpha[0], "--top", "2"])
+    assert result.exit_code == 0, result.output
+    assert "briefs cached" in result.output
+    with duckdb.connect(str(s.app_db_path)) as app:
+        assert app.execute("SELECT count(*) FROM briefs").fetchone()[0] >= 1  # type: ignore[index]
