@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import duckdb
@@ -99,3 +100,24 @@ def test_embed_bench_harness(ctx: bm.Context) -> None:
     )
     text = Path(out["report"]).read_text(encoding="utf-8")
     assert "Selection rule" in text and "s / 1,000 texts" in text
+
+
+def test_vectors_embed_only_what_a_run_reads(ctx: bm.Context) -> None:
+    """A benchmark of several models must not embed every award with each of them."""
+    encoded: list[str] = []
+
+    class Counting(HashingEmbedder):
+        def encode(self, texts: Sequence[str], kind: str = "query") -> np.ndarray:
+            encoded.extend(texts)
+            return super().encode(texts, kind)
+
+    ctx.cache["embedder:test/counting"] = Counting(model_name="test/counting")
+    ids = ctx.corpus.ids
+    assert ctx.vectors("test/counting", ids[:5]).shape[0] == 5 and len(encoded) == 5
+    ctx.vectors("test/counting", ids[:7])
+    assert len(encoded) == 7  # only the two new awards were embedded
+
+    # An award without objet has nothing to embed: zero vector, aligned with the request.
+    ctx.conn.execute("UPDATE awards SET objet = NULL WHERE uid = ?", [ids[10]])
+    v = ctx.vectors("test/counting", [ids[10], ids[0]])
+    assert v.shape[0] == 2 and not v[0].any() and v[1].any()

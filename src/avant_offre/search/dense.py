@@ -87,6 +87,7 @@ class EmbedStats:
     model: str
     texts: int
     seconds: float
+    ids: tuple[str, ...] = ()  # the awards embedded by this call
 
     @property
     def seconds_per_1000(self) -> float:
@@ -99,17 +100,22 @@ def embed_awards(
     store: VectorStore | None = None,
     *,
     batch: int = 2048,
+    uids: Sequence[str] | None = None,
 ) -> EmbedStats:
-    """Embed every award ``objet`` not yet stored for this model."""
+    """Embed the award ``objet`` not yet stored for this model: every award, or only ``uids``
+    (a benchmark reads a third of the awards; only the chosen model needs them all)."""
     store = store or VectorStore()
     done = store.ids("awards", embedder.model_name)
-    rows = [
-        r
-        for r in conn.execute(
-            "SELECT uid, objet, notified_on FROM awards WHERE objet IS NOT NULL ORDER BY uid"
-        ).fetchall()
-        if r[0] not in done
-    ]
+    if uids is None:
+        sql, params = "SELECT uid, objet, notified_on FROM awards WHERE objet IS NOT NULL", []
+    else:
+        wanted = sorted(set(uids) - done)
+        sql = (
+            "SELECT uid, objet, notified_on FROM awards "
+            "WHERE objet IS NOT NULL AND uid IN (SELECT unnest(?))"
+        )
+        params = [wanted]
+    rows = [r for r in conn.execute(sql + " ORDER BY uid", params).fetchall() if r[0] not in done]
     started = time.perf_counter()
     for i in range(0, len(rows), batch):
         chunk = rows[i : i + batch]
@@ -122,7 +128,9 @@ def embed_awards(
             vecs,
         )
         log.info("embedded %d/%d awards with %s", i + len(chunk), len(rows), embedder.model_name)
-    return EmbedStats(embedder.model_name, len(rows), time.perf_counter() - started)
+    return EmbedStats(
+        embedder.model_name, len(rows), time.perf_counter() - started, tuple(r[0] for r in rows)
+    )
 
 
 def embed_tenders(

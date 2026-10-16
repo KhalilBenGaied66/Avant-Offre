@@ -94,14 +94,35 @@ class Context:
     scorer_factory: Callable[[], PairScorer] = default_scorer
     store: VectorStore | None = None
 
-    def vectors(self, model: str, ids: list[str]) -> np.ndarray:
-        """Award vectors for ``ids`` (embedding every award once per model, cached)."""
-        store = self.store or VectorStore()
-        key = f"embedded:{model}"
+    def embedder(self, model: str) -> Embedder:
+        """One loaded embedder per model for the whole run."""
+        key = f"embedder:{model}"
         if key not in self.cache:
-            embed_awards(self.conn, self.embedder_factory(model), store)
-            self.cache[key] = True
-        return store.get("awards", model, ids)
+            self.cache[key] = self.embedder_factory(model)
+        emb: Embedder = self.cache[key]
+        return emb
+
+    def vectors(self, model: str, ids: list[str]) -> np.ndarray:
+        """Award vectors for ``ids``, aligned. Awards are embedded on first use, and only those
+        not stored yet for this model. An award without ``objet`` has nothing to embed: it gets
+        a zero vector (similarity 0 with everything)."""
+        store = self.store or VectorStore()
+        key = f"stored:{model}"
+        if key not in self.cache:
+            self.cache[key] = store.ids("awards", model)
+        stored: set[str] = self.cache[key]
+        if missing := [i for i in ids if i not in stored]:
+            stats = embed_awards(self.conn, self.embedder(model), store, uids=missing)
+            stored.update(stats.ids)
+        present = [i for i in ids if i in stored]
+        found = store.get("awards", model, present) if present else None
+        if found is not None and len(present) == len(ids):
+            return found
+        dim = found.shape[1] if found is not None else self.embedder(model).encode(["x"]).shape[1]
+        out = np.zeros((len(ids), dim), dtype=np.float32)
+        if found is not None:
+            out[[k for k, i in enumerate(ids) if i in stored]] = found
+        return out
 
 
 def load_corpus(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> Corpus:
