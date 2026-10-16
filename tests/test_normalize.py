@@ -10,7 +10,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from avant_offre.ingest.decp import SchemaMismatchError, check_schema
-from avant_offre.transform import normalize
+from avant_offre.transform import companies, entity_resolution, normalize
 from tests.fixtures import build_rows
 
 
@@ -150,3 +150,30 @@ def test_call_off_detection(conn: duckdb.DuckDBPyConnection, tmp_path: Path) -> 
     normalize.build(conn, path)
     got = dict(conn.execute("SELECT uid, is_call_off FROM awards").fetchall())
     assert got == {a["uid"]: False, b["uid"]: True, c["uid"]: True, d["uid"]: False}
+
+
+def test_rebuild_is_identical_whatever_the_row_order(tmp_path: Path) -> None:
+    """Initial rows that disagree (real DECP: objet, amount, winner name) must resolve the same
+    way on every build; any_value()/mode() followed the scan order."""
+    rows = [r for r in build_rows() if r["modification_id"] == 0][:60]
+    first = rows[0]
+    conflicting = [
+        {**first, "objet": "Objet A", "montant": 1000.0, "titulaire_nom": "NOM A"},
+        {**first, "objet": "Objet B", "montant": 2000.0, "titulaire_nom": "NOM B"},
+    ]
+
+    def build(order: list[dict[str, object]], name: str) -> list[list[tuple[object, ...]]]:
+        path = tmp_path / f"{name}.parquet"
+        pq.write_table(pa.table({k: [r.get(k) for r in order] for k in order[0]}), path)
+        c = duckdb.connect(":memory:")
+        normalize.build(c, path)
+        entity_resolution.resolve(c)
+        companies.build_companies(c)
+        return [
+            c.execute(f"SELECT * FROM {t} ORDER BY ALL").fetchall()
+            for t in ("awards", "award_winners", "companies")
+        ]
+
+    forward = build([*rows, *conflicting], "forward")
+    backward = build([*reversed(conflicting), *reversed(rows)], "backward")
+    assert forward == backward

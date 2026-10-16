@@ -131,18 +131,30 @@ def eligible_companies(
             SELECT DISTINCT w.company_key, a.uid, a.notified_on, a.cpv_division
             FROM award_winners w JOIN awards a USING (uid)
             WHERE w.link_method IN ('exact', 'siren') AND w.company_key IS NOT NULL
+        ),
+        -- Main division before t0; a tie goes to the smallest code (mode() would follow the
+        -- scan order and move companies between strata from one run to the next).
+        divisions AS (
+            SELECT company_key, cpv_division, count(*) AS n FROM wins
+            WHERE notified_on < ? AND cpv_division IS NOT NULL GROUP BY ALL
+        ),
+        main AS (
+            SELECT company_key, first(cpv_division ORDER BY n DESC, cpv_division) AS division
+            FROM divisions GROUP BY company_key
         )
         SELECT wins.company_key,
                count(*) FILTER (WHERE notified_on < ?) AS n_before,
                count(*) FILTER (WHERE notified_on >= ? AND notified_on < ?) AS n_test,
-               mode(cpv_division) FILTER (WHERE notified_on < ?) AS division,
+               any_value(m.division) AS division,
                any_value(c.size_category) AS size_category
-        FROM wins LEFT JOIN companies c ON c.siren = wins.company_key
+        FROM wins
+        LEFT JOIN main m USING (company_key)
+        LEFT JOIN companies c ON c.siren = wins.company_key
         GROUP BY wins.company_key
         HAVING n_before >= ? AND n_test >= ?
         ORDER BY wins.company_key
         """,
-        [t0, t0, t1, t0, e.min_wins_before_t0, e.min_wins_in_test],
+        [t0, t0, t0, t1, e.min_wins_before_t0, e.min_wins_in_test],
     ).fetchall()
 
 
