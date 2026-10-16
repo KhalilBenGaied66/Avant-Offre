@@ -9,13 +9,13 @@ git commit, config hash, data snapshot date and seed.
 | --- | --- | --- |
 | `check_sources.md` | `make check-sources` | generated (data hosts reachable but intermittent; Hugging Face blocked) |
 | `entity_resolution_sample.csv` | `make data-sample` | generated on real data (sole traders pseudonymized, their SIREN removed) |
-| `matching_baselines.md` / `.json` | `avant-offre eval matching-baselines` | not generated yet |
-| `matching.md` / `.json` | `avant-offre eval matching` | not generated yet |
-| `embed_bench.md` / `.json` | `avant-offre eval embed` | not generated yet |
-| `competitors.md` / `.json`, `competitors_calibration.png` | `avant-offre eval competitors` | not generated yet |
-| `prices.md` / `.json` | `avant-offre eval prices` | not generated yet |
-| `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | not generated yet (needs an LLM key) |
-| `SUMMARY.md` | `avant-offre eval summary` | not generated yet |
+| `matching_baselines.md` / `.json` | `avant-offre eval matching-baselines` | generated on real data |
+| `matching.md` / `.json` | `avant-offre eval matching` | not generated yet (needs the model runtime and Hugging Face) |
+| `embed_bench.md` / `.json` | `avant-offre eval embed` | not generated yet (needs the model runtime and Hugging Face) |
+| `competitors.md` / `.json`, `competitors_calibration.png` | `avant-offre eval competitors` | generated on real data |
+| `prices.md` / `.json` | `avant-offre eval prices` | generated on real data |
+| `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | written as "not run" (no LLM key in the build environment); no number reported |
+| `SUMMARY.md` | `avant-offre eval summary` | generated (sections without a report say so) |
 
 "Not generated yet" means the backtests have not run yet (`make eval-sample`); it does not mean
 a report failed.

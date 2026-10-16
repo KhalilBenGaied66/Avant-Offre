@@ -70,6 +70,23 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Real data: no price band where the backtest says it fails
+Context: `reports/prices.md` on real awards. Overall the bands are close to target ([P25, P75]
+covers 0.483 [0.466, 0.499] of actual amounts, target ≈ 0.5; [P10, P90] 0.751 [0.736, 0.764],
+target ≈ 0.8). CPV division 72 (IT) is far off: 0.349 and 0.500, median off by a factor ~6.8.
+Why IT amounts are harder to predict from comparable wording is not established here.
+Decision: `intel.price_unreliable_divisions` (config, today `["72"]`) lists divisions whose
+range is withheld: the tender view and the brief say "non évaluée" with the reason, and the
+scorecard leaves price realism not assessed (its weight is redistributed like any missing
+input). The price backtest keeps measuring the raw method on every division, so the list can be
+revised from the report.
+Alternatives considered: show the IT band with a warning (a committee reads the number, not the
+footnote); widen the IT band (P5–P95 would still be off by the median factor).
+Evidence: `reports/prices.md`; `tests/test_intel_score.py::test_price_range_withheld_for_divisions_that_failed_the_backtest`,
+`tests/test_brief.py::test_withheld_price_range_says_why_and_still_verifies`.
+Revisit if: a division's [P10, P90] coverage CI reaches the target in a later run, or richer
+comparables (lots, price forms, durations) are added to the price model.
+
 ### 2026-10-16 — Real data: BM25 with a mean profile is the matching default; stronger CPV baseline
 Context: first matching backtest on real awards (sample scope, t0 = 2025-01-01, 500 companies
 stratified by CPV division). The chronological CPV alert feed of SPEC §7.2 is a weak baseline:
@@ -97,7 +114,10 @@ for company attributes, an explicit tie-break for the backtest's main CPV divisi
 Alternatives considered: single-threaded DuckDB (slower, and the order would still depend on
 the file's row order).
 Evidence: `tests/test_normalize.py::test_rebuild_is_identical_whatever_the_row_order` (fails on
-the previous code); two consecutive real backtest runs give identical reports.
+the previous code); two consecutive real backtest runs give identical reports. The config hash
+printed in every report now leaves out operational settings (paths, HTTP retries, API serving),
+so a retried download does not look like a different configuration
+(`tests/test_settings.py::test_config_hash_ignores_operational_settings`).
 Revisit if: a new aggregate is added: it must be order-independent or carry its own tie-break.
 
 ### 2026-10-16 — Real data: one public identifier rule for every output

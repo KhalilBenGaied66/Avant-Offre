@@ -11,11 +11,11 @@ et les rapports d'évaluation sont faits pour être relus.
 
 > **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte). Les données
 > réelles sont ingérées sur le périmètre échantillon (DECP du 15/10/2026, avis BOAMP ouverts du
-> 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`, généré par `make quality`.
-> **Les backtests n'ont pas encore tourné : aucun chiffre d'évaluation n'est publié**, et aucun
-> n'a été estimé à leur place. Depuis l'environnement de développement, Hugging Face reste
-> bloqué (`reports/check_sources.md`) : les embeddings et le reranker ne peuvent pas encore être
-> mesurés.
+> 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`. Les backtests sans modèle
+> ont tourné (appariement CPV / BM25, concurrents, prix : voir « Résultats mesurés »). Restent à
+> mesurer : les embeddings, l'hybride et le reranker (Hugging Face est bloqué depuis
+> l'environnement de développement) et la fidélité des notes LLM (clé d'API requise). Aucun
+> chiffre n'a été estimé à la place d'un run.
 
 ## Le besoin
 
@@ -105,21 +105,39 @@ mémoire technique, un RAG sur tous les avis. Chaque décision de construction e
 
 ## Résultats mesurés
 
-**Aucun pour l'instant** (voir l'état actuel en haut de page). Les backtests sont écrits, testés
-et lancés par `make eval-sample` ; ils comparent sur les attributions réelles :
+Backtests sur les attributions réelles (périmètre échantillon : 10 départements, CPV 45, 72, 79,
+90). Profils, index et statistiques construits uniquement avec les marchés notifiés avant le
+1er janvier 2025 (test `tests/test_leakage.py`), testés sur les attributions de 2025. Chiffres
+copiés de `reports/SUMMARY.md` (généré par `make eval-sample`) ; intervalles de confiance à 95 %
+par bootstrap dans chaque rapport. Deux exécutions successives donnent des rapports identiques.
 
-| Rapport | Question |
+**Appariement** (`reports/matching_baselines.md`, 382 entreprises de test) : part des marchés
+réellement gagnés en 2025 retrouvés dans les 20 premiers avis proposés (Recall@20).
+
+| Méthode | Recall@20 |
 | --- | --- |
-| `reports/matching.md` | L'hybride (BM25 + denses, RRF, reranker) bat-il les alertes CPV et BM25 en Recall@20, avec un intervalle de confiance au-dessus de 0 ? |
-| `reports/embed_bench.md` | Quel modèle d'embeddings donne la meilleure qualité pour son coût ? |
-| `reports/competitors.md` | Le vrai titulaire figure-t-il parmi les 5 / 10 concurrents prédits, séparément pour les titulaires connus et les primo-titulaires ? |
-| `reports/prices.md` | La fourchette P25–P75 couvre-t-elle ~50 % des montants réels ? |
-| `reports/brief_faithfulness.md` | Quelle part des notes LLM passe le vérificateur sans retrait ? |
-| `reports/SUMMARY.md` | Synthèse et décisions déclenchées |
+| Alerte CPV classique (avis du même groupe CPV, les plus récents d'abord) | 0,021 |
+| Alerte CPV classée par fréquence des codes gagnés (référence la plus forte sans IA) | 0,139 |
+| BM25, profil moyen de l'entreprise | **0,270** |
 
-Protocole : profils et index construits uniquement avec les marchés notifiés avant la date de
-coupure (test `tests/test_leakage.py`), entreprises réparties 20 % réglage / 80 % test par hachage
-du SIREN, tous les choix faits sur le réglage, intervalles de confiance par bootstrap.
+Écart BM25 − meilleure alerte CPV, apparié par entreprise : **+0,131 [0,097 ; 0,167]** ; BM25 est
+devant dans chaque division CPV. BM25 est donc la méthode livrée. Les embeddings et l'hybride ne
+seront livrés que s'ils battent BM25 avec un intervalle au-dessus de 0 (`docs/DECISIONS.md`).
+
+**Concurrents probables** (`reports/competitors.md`, 5 497 couples attribution–titulaire) : le
+vrai titulaire figure parmi les 10 concurrents prédits dans 20 % des cas, 44 % quand il a déjà
+travaillé pour cet acheteur, 13 % sinon. Les primo-titulaires (8 % des cas) ne peuvent pas être
+nommés à partir de l'historique public : la note donne la part de primo-titulaires. Sa
+calibration, vérifiée par déciles, suit la diagonale au-dessus de 5 % ; en dessous, elle sous-estime
+les marchés les plus fermés (environ 4 % de primo-titulaires observés).
+
+**Fourchette de prix** (`reports/prices.md`, 3 430 attributions) : la fourchette P25–P75 couvre
+48 % des montants réels (cible ≈ 50 %), P10–P90 en couvre 75 % (cible ≈ 80 %). En informatique
+(division 72), elle n'en couvre que 35 % et 50 % : la fourchette n'est plus affichée pour ce
+domaine et le critère de prix de la grille y reste « non évalué », avec la raison.
+
+Pas encore mesurés : modèles d'embeddings (`reports/embed_bench.md`), hybride et reranker
+(`reports/matching.md`), fidélité des notes LLM (`reports/brief_faithfulness.md`).
 
 ## Limites
 

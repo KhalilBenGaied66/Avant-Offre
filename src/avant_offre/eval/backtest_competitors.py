@@ -206,13 +206,15 @@ def _calibration(pairs: list[tuple[float, float]]) -> tuple[list[tuple[Any, ...]
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt  # noqa: PLC0415
 
+    # Square axes fitted to the data (shares are usually far below 1), diagonal kept.
+    lim = min(1.0, max(0.05, 1.15 * max(*xs, *ys)))
     fig, ax = plt.subplots(figsize=(4.5, 4.5))
-    ax.plot([0, 1], [0, 1], linestyle="--", color="#888888", linewidth=1)
+    ax.plot([0, lim], [0, lim], linestyle="--", color="#888888", linewidth=1)
     ax.plot(xs, ys, marker="o", color="#1f4e79")
     ax.set_xlabel("Predicted newcomer share")
     ax.set_ylabel("Observed share of first-time winners")
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, lim)
     ax.set_title("Newcomer-share calibration (test window)")
     fig.tight_layout()
     out = get_settings().reports_dir / "competitors_calibration.png"

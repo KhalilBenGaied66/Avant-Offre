@@ -14,7 +14,7 @@ make web-install web                 # terminal 2, http://localhost:5173
 ```
 
 Choisir à l'avance une entreprise de l'échantillon avec un historique fourni (le rapport
-`reports/matching.json` liste les entreprises évaluées) et un avis de la semaine qui lui
+`reports/matching_baselines.json` liste les entreprises évaluées (identifiant public : SIREN des personnes morales)) et un avis de la semaine qui lui
 correspond. Avoir ouverts : la page de revue, `docs/DECISIONS.md`, `reports/SUMMARY.md`, et
 Claude Desktop configuré avec le serveur MCP (`docs/MCP.md`).
 
