@@ -5,7 +5,7 @@
     "clean": 0.04,
     "removed": 2.06,
     "fallback": 0.36,
-    "latency": 99004.00991337997,
+    "latency": 97225.90555715997,
     "cost": 0.0,
     "n": 50.0
    },
@@ -13,7 +13,7 @@
     "clean": 0.0425531914893617,
     "removed": 2.0851063829787235,
     "fallback": 0.3617021276595745,
-    "latency": 98262.69488712763,
+    "latency": 96942.14688070212,
     "cost": 0.0,
     "n": 47.0
    },
@@ -23,450 +23,623 @@
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 99025.8246389999,
+     "latency": 94668.30136699992,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number matches no cited fact": 3
+     }
     },
     {
      "notice": "26-100270",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 110243.50780700025,
+     "latency": 102749.74097599988,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-100330",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 122584.50352799991,
+     "latency": 107596.33212199992,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-100454",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 107091.22876200036,
+     "latency": 97867.85260200009,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-92139",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 93226.34762500002,
+     "latency": 88010.2209040001,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-92282",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 95202.36411900033,
+     "latency": 89776.06289799996,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-92446",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 114003.31102500013,
+     "latency": 112671.817099,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-92521",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 99602.47980299937,
+     "latency": 97432.33504499994,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-92640",
      "clean": 0.0,
      "removed": 7.0,
      "fallback": 1.0,
-     "latency": 100385.05701899977,
+     "latency": 96703.38055399997,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 7
+     }
     },
     {
      "notice": "26-92807",
      "clean": 0.0,
      "removed": 4.0,
      "fallback": 1.0,
-     "latency": 107949.9092369997,
+     "latency": 110046.19926499981,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 3
+     }
     },
     {
      "notice": "26-92822",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 102151.34524699987,
+     "latency": 103825.20994600009,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-92863",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 97829.81035099964,
+     "latency": 99625.65975699999,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-92929",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 90277.05702000004,
+     "latency": 88154.13130099978,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-92970",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 106496.37788699966,
+     "latency": 104257.52057599994,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 2,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-93554",
      "clean": 0.0,
      "removed": 4.0,
      "fallback": 1.0,
-     "latency": 95402.40410000025,
+     "latency": 96296.58124800016,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 3
+     }
     },
     {
      "notice": "26-94320",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 103640.11206499982,
+     "latency": 102767.98396200001,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-94457",
      "clean": 1.0,
      "removed": 0.0,
      "fallback": 0.0,
-     "latency": 89701.5334889993,
+     "latency": 88502.29266399992,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {}
     },
     {
      "notice": "26-94514",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 109589.14504899985,
+     "latency": 107598.25014399985,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-94657",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 90808.75668699991,
+     "latency": 93173.41594199979,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-94697",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 121330.63357100036,
+     "latency": 123619.52000400015,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 2,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-94745",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 95949.9861209997,
+     "latency": 96351.62532300001,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-94830",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 96442.45742600015,
+     "latency": 95827.01366899983,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-94922",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 100641.87833100004,
+     "latency": 101872.24347399978,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-95172",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 93588.65335300015,
+     "latency": 93224.96973099987,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-95191",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 92362.34264599989,
+     "latency": 91663.24968599975,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-95240",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 109515.46352500009,
+     "latency": 107209.86449800011,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-95627",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 90651.74481699978,
+     "latency": 89527.91049400003,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-95637",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 89120.27924199993,
+     "latency": 91179.99300300016,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-96674",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 104036.24466700057,
+     "latency": 105072.32686899988,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-97176",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 101225.3240559994,
+     "latency": 101582.14694300023,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-97196",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 99847.02951300004,
+     "latency": 100818.83606999964,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-97229",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 112304.27871900065,
+     "latency": 116114.0706770002,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1
+     }
     },
     {
      "notice": "26-97573",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 95977.2288969998,
+     "latency": 99236.21582299983,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-97607",
      "clean": 0.0,
      "removed": 4.0,
      "fallback": 1.0,
-     "latency": 103405.93822199936,
+     "latency": 103165.6711630003,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 4
+     }
     },
     {
      "notice": "26-97770",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 80114.77857699993,
+     "latency": 79982.7456740004,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-97780",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 85459.74153499992,
+     "latency": 85138.8103040008,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-97787",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 95521.76564399997,
+     "latency": 95175.26064400045,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-97840",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 102032.39147300064,
+     "latency": 95695.61188900025,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98112",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 84759.12339800016,
+     "latency": 82301.39785499978,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98164",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 111879.87739099935,
+     "latency": 107118.23088999972,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98243",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 95307.35010199988,
+     "latency": 92508.65699299992,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98428",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 89056.44888100051,
+     "latency": 85953.17035700008,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98441",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 91409.5924659996,
+     "latency": 87717.79012999922,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-98759",
      "clean": 1.0,
      "removed": 0.0,
      "fallback": 0.0,
-     "latency": 98031.99423500063,
+     "latency": 92508.63591099915,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {}
     },
     {
      "notice": "26-98845",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 103849.76376099985,
+     "latency": 101118.13980400075,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-98895",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 97071.89115399978,
+     "latency": 93070.03447800071,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-99076",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 100409.22835000037,
+     "latency": 100533.01750799983,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     },
     {
      "notice": "26-99156",
      "clean": 0.0,
      "removed": 2.0,
      "fallback": 0.0,
-     "latency": 86128.5902010004,
+     "latency": 83447.5172149996,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-99319",
      "clean": 0.0,
      "removed": 1.0,
      "fallback": 0.0,
-     "latency": 98841.22566799942,
+     "latency": 96342.73646199927,
      "cost": 0.0,
-     "reason": null
+     "reason": null,
+     "removed_kinds": {
+      "number matches no cited fact": 1
+     }
     },
     {
      "notice": "26-99967",
      "clean": 0.0,
      "removed": 3.0,
      "fallback": 1.0,
-     "latency": 88716.17426800003,
+     "latency": 84494.57594500018,
      "cost": 0.0,
-     "reason": "verifier: N sentences removed > 2"
+     "reason": "verifier: N sentences removed > 2",
+     "removed_kinds": {
+      "number without citation": 1,
+      "number matches no cited fact": 2
+     }
     }
    ]
   }
