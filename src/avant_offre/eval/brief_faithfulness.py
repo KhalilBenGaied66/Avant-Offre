@@ -6,8 +6,8 @@ latency and cost per brief, for each model in ``config/models.yaml`` (writer + a
 whose key is available. Also writes ``reports/brief_samples.md`` — 10 full briefs with their
 facts, marked "not yet reviewed" until the author reviews them.
 
-Without an API key nothing is measured and the report says so: briefs from the template are
-not counted as LLM results.
+Without a reachable model (no server, no key) nothing is measured and the report says so:
+briefs from the template are not counted as LLM results.
 """
 
 from __future__ import annotations
@@ -39,8 +39,10 @@ def run(
 ) -> dict[str, Any]:
     timer = common.Timer()
     s = get_settings()
-    models = [get_models().tasks["brief_writer"].model, *get_models().alternatives]
-    usable = [m for m in models if gateway.available(m)]
+    cfg = get_models()
+    models = [cfg.tasks["brief_writer"].model, *(a.model for a in cfg.alternatives)]
+    reasons = {m: gateway.unavailable_reason("brief_writer", m) for m in models}
+    usable = [m for m in models if reasons[m] is None]
     engine = Engine(conn, today or date.today())
     key = company_key or reference_company(conn)
     tenders = (
@@ -58,7 +60,7 @@ def run(
     )
     if not usable or not sample:
         reason = (
-            "no LLM available (missing API key or `--extra llm`)"
+            "no LLM available: " + "; ".join(str(r) for r in reasons.values())
             if not usable
             else "no open tender or no reference company in the store"
         )

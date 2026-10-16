@@ -44,6 +44,36 @@ lecteurs ou un seul écrivain). Seule l'API écrit, dans une petite base sépar�
 - Variante sans Azure : un seul serveur Linux avec Docker Compose et cron ; les mêmes principes
   s'appliquent.
 
+### 2.1 Servir le LLM (notes, extraction)
+
+Le code ne connaît qu'une interface : l'API de chat compatible OpenAI, ou un fournisseur connu de
+LiteLLM (`src/avant_offre/llm/gateway.py`). Le choix du modèle et de l'hébergement est donc une
+ligne de `config/models.yaml` (ou la variable `AVANT_OFFRE_LLM_API_BASE`), sans changement de code.
+
+| Option | Pour qui | Configuration |
+| --- | --- | --- |
+| Développement, gratuit | ce dépôt, une démo | `make llm-local` : serveur llama.cpp sur CPU, modèle open-weights Apache-2.0 ; `api_base: http://127.0.0.1:8080/v1` |
+| Auto-hébergé sur GPU | données qui ne doivent pas sortir du SI | vLLM ou TGI (même API) derrière l'ingress interne ; `model: openai/<nom servi>`, `api_base`, `api_key_env` |
+| Géré, dans le tenant du client | contrat cloud existant, résidence UE | Azure OpenAI (`azure/<déploiement>`) ou AWS Bedrock (`bedrock/<id>`, dont Claude) ; clés en Key Vault / IAM |
+| Géré, chez le fournisseur | démarrage rapide | `anthropic/…`, `mistral/…` ; clé dans `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY` |
+
+Ce qui permet de monter en charge sans changer d'architecture :
+- **Le LLM est un service séparé** de l'API : il se dimensionne (GPU, répliques, autoscaling sur
+  la file d'attente) indépendamment, et plusieurs applications peuvent le partager via une
+  passerelle (LiteLLM proxy) qui porte quotas, clés et journalisation.
+- **Les notes sont produites en lot** par le job hebdomadaire pour les avis retenus, puis
+  **mises en cache** (`briefs.cache_key` : faits + modèle + prompt) : un relecteur qui ouvre une
+  fiche ne relance pas le modèle, et une note n'est jamais générée deux fois pour les mêmes faits.
+- **Chaque appel a un délai, des reprises et un repli** (`timeout_s`, `num_retries` par tâche) ;
+  un serveur absent, saturé ou trop lent rend `LLMUnavailableError` et la note déterministe est
+  servie, marquée comme telle. Le service ne tombe jamais à cause du LLM.
+- **Coût et qualité sont tracés** à chaque appel (`data/traces/*.jsonl` : modèle, tokens,
+  latence, coût, verdict du vérificateur) : le taux de repli et le coût par note se suivent dans
+  la supervision (§ 4), et `make eval-sample` compare un nouveau modèle au précédent avant
+  bascule (`alternatives` dans `config/models.yaml`).
+- **Décodage glouton** (`temperature: 0`) : les mêmes faits donnent la même note, ce qui rend le
+  cache sûr et les évaluations reproductibles.
+
 ## 3. Coûts hebdomadaires
 
 Les montants ci-dessous sont des **ordres de grandeur à confirmer**, pas des mesures : ils seront

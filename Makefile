@@ -9,7 +9,7 @@ CLI := $(RUN) avant-offre
 
 .PHONY: setup setup-full lint format test check-sources data-sample data-full quality \
         index-sample index-full eval-sample eval-full serve mcp mcp-http web web-install \
-        web-build ci lint-workflows
+        web-build ci lint-workflows llm-local
 
 setup:            ## install core + dev deps (no model runtime)
 	$(UV) sync --extra llm
@@ -64,6 +64,9 @@ mcp:
 
 mcp-http:
 	$(CLI) mcp --transport http
+
+llm-local:        ## free local LLM endpoint on :8080 (llama.cpp + Qwen2.5-1.5B, first run builds)
+	scripts/llm_local.sh
 
 web-install:
 	cd web && npm ci

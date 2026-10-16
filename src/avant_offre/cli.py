@@ -333,6 +333,36 @@ def brief(
 
 
 @app.command()
+def briefs(
+    siret: str = typer.Option(..., help="SIRET or SIREN of the company."),
+    week: str = typer.Option(None, help="ISO week, e.g. 2026-W42 (default: the current week)."),
+    top: int = typer.Option(10, help="Briefs for the N best-ranked eligible notices."),
+) -> None:
+    """Weekly batch: write and cache the briefs of the week's shortlist.
+
+    Runs in the batch window, after `data` and `index`, while the API is down for its weekly
+    restart (DuckDB has one writer). The API then serves these briefs from the cache instead of
+    calling the model while a reviewer waits.
+    """
+    from avant_offre.store import db
+
+    with db.session(read_only=True) as conn:
+        engine = _engine(conn)
+        engine.app_conn = db.app_connect()
+        try:
+            prof = engine.profile(siret=siret)
+            done = []
+            for item in engine.shortlist(prof, week).eligible[:top]:
+                b, _ = engine.brief(item.notice_id, prof)
+                done.append((item.notice_id, b.model, b.fallback, b.fallback_reason))
+        finally:
+            engine.app_conn.close()
+    for nid, model, fallback, reason in done:
+        console.print(f"{nid}  model={model}  fallback={fallback}  {reason or ''}")
+    console.print(f"[dim]{len(done)} briefs cached in {get_settings().app_db_path}[/dim]")
+
+
+@app.command()
 def extract(limit: int = typer.Option(None, help="Max notices to process.")) -> None:
     """LLM fallback for text facts missing from eForms (step 4)."""
     from avant_offre.extract import llm_extract

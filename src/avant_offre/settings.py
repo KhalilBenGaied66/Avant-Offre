@@ -307,6 +307,14 @@ class TaskModel(BaseModel):
     model: str
     max_tokens: int
     temperature: float | None = None  # None: provider default (some models reject others)
+    # OpenAI-compatible endpoint (llama.cpp, vLLM, TGI, a company gateway); None = the provider's
+    # own API. `AVANT_OFFRE_LLM_API_BASE` overrides it at deployment.
+    api_base: str | None = None
+    # Environment variable holding the key; None = the provider's usual one (ANTHROPIC_API_KEY…),
+    # or no key at all for a self-hosted endpoint.
+    api_key_env: str | None = None
+    timeout_s: float = 120
+    num_retries: int = 2
 
 
 class Price(BaseModel):
@@ -327,7 +335,9 @@ class EmbeddingsConfig(BaseModel):
 class ModelsConfig(BaseModel):
     gateway: str
     tasks: dict[str, TaskModel]
-    alternatives: list[str] = Field(default_factory=list)
+    # Other models the brief evaluation compares with the writer, each with its own settings;
+    # measured only when reachable (key set, or server up).
+    alternatives: list[TaskModel] = Field(default_factory=list)
     prices_per_mtok: dict[str, Price] = Field(default_factory=dict)
     embeddings: EmbeddingsConfig
     reranker: str

@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import duckdb
 import pytest
 
 from avant_offre.eval import backtest_competitors, backtest_prices, brief_faithfulness, report
+from avant_offre.llm import gateway
 from avant_offre.service import Engine, week_bounds
 from avant_offre.settings import reset_caches
+from avant_offre.store import db
 from tests.helpers import add_tenders, build_store
 
 TODAY = date(2026, 10, 15)
@@ -65,6 +68,52 @@ def test_brief_without_llm_is_the_verified_template(store: duckdb.DuckDBPyConnec
     b, facts = engine.brief("T1", engine.profile(siret=alpha[0]))
     assert b.fallback and "## Recommandation" in b.text and facts.band in b.text
     assert app.execute("SELECT count(*) FROM briefs WHERE fallback").fetchone() == (1,)
+
+
+def test_brief_cache_reuses_model_briefs_only(
+    store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = duckdb.connect(":memory:")
+    engine = Engine(store, TODAY, app_conn=app)
+    alpha = store.execute(
+        "SELECT company_key FROM company_names WHERE display_name = 'ALPHA INFORMATIQUE'"
+    ).fetchone()
+    assert alpha is not None
+    prof = engine.profile(siret=alpha[0])
+    calls: list[str] = []
+
+    def answering(task: str, messages: list[dict[str, str]], model: str | None = None) -> Any:
+        calls.append(task)
+        text = (
+            "## Recommandation\nGO sans réserve."  # fails the verifier: template, but a model ran
+        )
+        return gateway.LLMResult(text, "openai/test", 100, 20, 5.0, 0.0, "stop", "h")
+
+    def down(task: str, messages: list[dict[str, str]], model: str | None = None) -> Any:
+        calls.append(task)
+        raise gateway.LLMUnavailableError("server down")
+
+    # No model answered: the brief is stored but not reused, the next request tries again.
+    monkeypatch.setattr(gateway, "complete", down)
+    engine.brief("T1", prof)
+    engine.brief("T1", prof)
+    assert len(calls) == 2
+
+    # A model answered: the same facts return the stored brief without a second call.
+    monkeypatch.setattr(gateway, "complete", answering)
+    first, _ = engine.brief("T1", prof)
+    second, _ = engine.brief("T1", prof)
+    assert len(calls) == 3
+    assert second.brief_id == first.brief_id and second.text == first.text
+    assert second.removed == first.removed and second.model == "openai/test"
+
+
+def test_app_tables_gain_new_columns_in_place() -> None:
+    app = duckdb.connect(":memory:")
+    app.execute("CREATE TABLE briefs (brief_id VARCHAR PRIMARY KEY, notice_id VARCHAR)")
+    db.ensure_app_tables(app)
+    cols = {r[0] for r in app.execute("DESCRIBE briefs").fetchall()}
+    assert {"cache_key", "removed", "latency_ms"} <= cols
 
 
 def test_competitor_and_price_backtests_write_reports(store: duckdb.DuckDBPyConnection) -> None:
