@@ -176,7 +176,7 @@ class EvalConfig(BaseModel):
     embed_tolerance: float = 0.01
     brief_sample_size: int = 50
     brief_review_samples: int = 10
-    # Notices of the brief sample used to choose the model or the prompt: reported apart.
+    # Notices whose briefs were read to change the model, the prompt or the facts: reported apart.
     brief_dev_notices: list[str] = Field(default_factory=list)
     max_test_awards: int = 5000
     # The cross-encoder costs ~23 s per company on a 4-core CPU: it is evaluated on a seeded

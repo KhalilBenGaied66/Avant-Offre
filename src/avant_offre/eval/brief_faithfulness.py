@@ -132,8 +132,9 @@ def run(
         f"- Verifier: max {s.brief.max_removed} removed sentences, {s.brief.max_words} words.",
         *(
             [
-                f"- {len(dev & set(sample))} of these notices were used to choose the model and "
-                "the prompt (`eval.brief_dev_notices`): the *held out* rows leave them out."
+                f"- {len(dev & set(sample))} of these notices had their briefs read to change "
+                "the model, the prompt or the facts (`eval.brief_dev_notices`): the *held out* "
+                "rows leave them out."
             ]
             if dev & set(sample)
             else []

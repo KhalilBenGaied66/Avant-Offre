@@ -144,15 +144,15 @@ def hard_stop_reasons(tender: TenderInputs, cfg: ScorecardConfig, today: date) -
         and tender.deadline_on is not None
         and (tender.deadline_on - today).days < hs.min_days_to_deadline
     ):
-        out.append(f"deadline in fewer than {hs.min_days_to_deadline} days")
+        out.append(f"date limite dans moins de {hs.min_days_to_deadline} jours")
     if (
         hs.max_amount_eur is not None
         and tender.estimated_value_eur is not None
         and tender.estimated_value_eur > hs.max_amount_eur
     ):
-        out.append("estimated value above the maximum")
+        out.append("montant estimé au-dessus du maximum")
     if hs.allowed_departments is not None and tender.dept not in hs.allowed_departments:
-        out.append("department not allowed")
+        out.append("département hors périmètre")
     return out
 
 
