@@ -26,9 +26,22 @@ def comp(
     d: date = date(2024, 1, 1),
     buyer: str | None = "B1",
     bids: int | None = None,
+    dynamic: bool = False,
 ) -> Comparable:
     return Comparable(
-        uid, sim, d, buyer, "Buyer", "objet", "72000000", "75", amount, framework, anomaly, bids
+        uid,
+        sim,
+        d,
+        buyer,
+        "Buyer",
+        "objet",
+        "72000000",
+        "75",
+        amount,
+        framework,
+        anomaly,
+        bids,
+        dynamic,
     )
 
 
@@ -39,12 +52,13 @@ def test_price_range_excludes_frameworks_and_aberrant() -> None:
         comp("ab", 1e9, anomaly="aberrant"),
         comp("zero", 0.0),
         comp("none", None),
+        *(comp(f"dps{i}", 0.2, dynamic=True) for i in range(20)),
     ]
     pr = price_range(comps, min_n=5)
     assert pr.n == 9 and pr.excluded_frameworks == 1
     assert pr.p50 == pytest.approx(500.0)
     assert pr.p25 == pytest.approx(300.0) and pr.p75 == pytest.approx(700.0)
-    assert "fw" not in pr.sources
+    assert "fw" not in pr.sources and not any(u.startswith("dps") for u in pr.sources)
 
 
 def test_price_range_not_assessed_below_min_n() -> None:
@@ -74,8 +88,17 @@ def test_price_range_withheld_for_divisions_that_failed_the_backtest(
     assert price.value is None and not price.assessed and price.note == withheld.note
 
 
-def test_bids_received_ignores_zero_and_missing() -> None:
-    s = bids_received([("a", 0), ("b", None), ("c", 3), ("d", 5)])
+def test_bids_received_ignores_zero_missing_and_dynamic_systems() -> None:
+    s = bids_received(
+        [
+            comp("a", None, bids=0),
+            comp("b", None, bids=None),
+            comp("c", None, bids=3),
+            comp("d", None, bids=5),
+            # offresRecues counts admitted candidates in a dynamic purchasing system
+            *(comp(f"dps{i}", 0.2, bids=468, dynamic=True) for i in range(5)),
+        ]
+    )
     assert s.value == 4.0 and s.n == 2 and s.sources == ["c", "d"]
 
 

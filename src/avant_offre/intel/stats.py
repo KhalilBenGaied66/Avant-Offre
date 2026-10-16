@@ -8,7 +8,8 @@ Every value is computed in SQL/Python and returned with its n and the award ``ui
 - **SME win share** — share of comparable awards with at least one PME winner, among awards
   where at least one winner's size category is known.
 - **bids received** — median of ``offresRecues`` over comparables where it is > 0 (0 is not a
-  plausible count for an awarded contract).
+  plausible count for an awarded contract), dynamic purchasing systems excluded (there it counts
+  admitted candidates: DATA_QUALITY F-007).
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ import duckdb
 import numpy as np
 from pydantic import BaseModel, Field
 
+from avant_offre.intel.comparables import Comparable
 from avant_offre.store.db import get_meta
 
 
@@ -91,8 +93,12 @@ def sme_share(conn: duckdb.DuckDBPyConnection, uids: Sequence[str]) -> Stat:
     )
 
 
-def bids_received(values: Sequence[tuple[str, int | None]]) -> Stat:
-    kept = [(u, v) for u, v in values if v is not None and v > 0]
+def bids_received(comps: Sequence[Comparable]) -> Stat:
+    kept = [
+        (c.uid, c.bids_received)
+        for c in comps
+        if c.bids_received is not None and c.bids_received > 0 and not c.is_dynamic_system
+    ]
     if not kept:
         return Stat(value=None, n=0, note="offresRecues missing on comparables")
     return Stat(

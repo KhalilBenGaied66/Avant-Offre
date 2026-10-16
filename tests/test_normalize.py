@@ -89,6 +89,25 @@ def test_framework(
     assert got[0] is expected
 
 
+@pytest.mark.parametrize(
+    ("techniques", "expected"),
+    [
+        ("Système d'acquisition dynamique", True),
+        ("Sans objet, Système d'acquisition dynamique", True),
+        ("Accord-cadre", False),
+        ("Sans objet", False),
+        (None, False),
+    ],
+)
+def test_dynamic_purchasing_system(
+    conn: duckdb.DuckDBPyConnection, techniques: str | None, expected: bool
+) -> None:
+    normalize.register_macros(conn)
+    got = conn.execute("SELECT ao_is_dynamic_system(?)", [techniques]).fetchone()
+    assert got is not None
+    assert got[0] is expected
+
+
 def test_build_splits_awards_winners_modifications(
     conn: duckdb.DuckDBPyConnection, decp_parquet: Path
 ) -> None:

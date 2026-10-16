@@ -42,6 +42,7 @@ class TestAward:
     is_framework: bool
     amount_anomaly: str | None
     cpv_division: str | None
+    is_dynamic_system: bool = False
 
 
 def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> list[TestAward]:
@@ -51,7 +52,8 @@ def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> lis
         SELECT a.uid, a.objet, a.notified_on, a.buyer_siret,
                list(DISTINCT w.company_key ORDER BY w.company_key)
                    FILTER (WHERE w.link_method IN ('exact', 'siren')) AS winners,
-               a.amount_eur, a.is_framework, a.amount_anomaly, a.cpv_division
+               a.amount_eur, a.is_framework, a.amount_anomaly, a.cpv_division,
+               a.is_dynamic_system
         FROM awards a JOIN award_winners w USING (uid)
         WHERE a.notified_on >= ? AND a.notified_on < ? AND a.objet IS NOT NULL
         GROUP BY ALL ORDER BY a.uid
@@ -59,7 +61,9 @@ def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> lis
         [t0, t1],
     ).fetchall()
     awards = [
-        TestAward(r[0], r[1], r[2], r[3], tuple(r[4] or ()), r[5], bool(r[6]), r[7], r[8])
+        TestAward(
+            r[0], r[1], r[2], r[3], tuple(r[4] or ()), r[5], bool(r[6]), r[7], r[8], bool(r[9])
+        )
         for r in rows
     ]
     if len(awards) > s.eval.max_test_awards:

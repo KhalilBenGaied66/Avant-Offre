@@ -1,6 +1,7 @@
 """Price range (P10–P90) over comparable non-framework awards.
 
 Excluded from price statistics: framework agreements (their amount is a ceiling, not a spend),
+dynamic purchasing systems (an admission, often at a symbolic amount: DATA_QUALITY F-007),
 amounts the publisher flags ``aberrant``, and amounts ≤ 0. Quantiles use linear interpolation
 (numpy default). Below ``intel.min_price_n`` comparables the range is "not assessed".
 """
@@ -37,6 +38,7 @@ def usable(c: Comparable) -> bool:
         c.amount_eur is not None
         and c.amount_eur > 0
         and not c.is_framework
+        and not c.is_dynamic_system
         and (c.amount_anomaly or "") != "aberrant"
     )
 

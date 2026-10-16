@@ -1,10 +1,10 @@
 """Price range backtest (SPEC §7.4).
 
-For each test-window award that is not a framework agreement (and whose amount is usable):
-predict P10–P90 from comparable awards notified before t0. Metrics: coverage of [P25, P75]
-(target ≈ 50 %) and [P10, P90] (target ≈ 80 %), median absolute log error of the median, with
-n per CPV division. Awards with fewer than ``intel.min_price_n`` usable comparables are counted
-as "not assessed", as in the product.
+For each test-window award with a usable amount (not a framework agreement or a dynamic
+purchasing system): predict P10–P90 from comparable awards notified before t0. Metrics:
+coverage of [P25, P75] (target ≈ 50 %) and [P10, P90] (target ≈ 80 %), median absolute log
+error of the median, with n per CPV division. Awards with fewer than ``intel.min_price_n``
+usable comparables are counted as "not assessed", as in the product.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ def run(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         a
         for a in load_test_awards(conn, w.t0, w.t1)
         if not a.is_framework
+        and not a.is_dynamic_system
         and a.amount_eur
         and a.amount_eur > 0
         and (a.amount_anomaly or "") != "aberrant"
@@ -64,7 +65,8 @@ def run(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         "## Setup",
         "",
         f"- Test window [{w.t0}, {w.t1}): {len(awards):,} awards with a usable amount "
-        "(framework agreements, `aberrant` amounts and amounts ≤ 0 excluded).",
+        "(framework agreements, dynamic purchasing systems, `aberrant` amounts and amounts ≤ 0 "
+        "excluded).",
         f"- Prediction: quantiles of comparable awards notified before {w.t0} (top "
         f"{s.intel.k_comparables} by BM25, same exclusions); at least {s.intel.min_price_n} "
         f"usable comparables required. Not assessed: {not_assessed:,} awards.",

@@ -91,6 +91,11 @@ CREATE OR REPLACE MACRO ao_valid_cpv_division(d) AS d IN ({_sql_list(VALID_DIVIS
 CREATE OR REPLACE MACRO ao_is_framework(techniques, nature) AS
     coalesce(lower(CAST(techniques AS VARCHAR)) LIKE '%accord%cadre%', false)
     OR coalesce(lower(CAST(nature AS VARCHAR)) LIKE '%accord%cadre%', false);
+
+-- Dynamic purchasing systems: an award admits suppliers to the system. Its amount is often
+-- symbolic (0.1 EUR) and `offresRecues` counts admitted candidates (DATA_QUALITY F-007).
+CREATE OR REPLACE MACRO ao_is_dynamic_system(techniques) AS
+    coalesce(lower(CAST(techniques AS VARCHAR)) LIKE '%acquisition dynamique%', false);
 """
 
 
@@ -221,6 +226,8 @@ def build(conn: duckdb.DuckDBPyConnection, raw: Path) -> dict[str, int]:
             arg_min(nature, row_key) AS nature,
             arg_min(techniques, row_key) AS techniques,
             bool_or(is_framework) AS is_framework,
+            -- Aggregate level only: a row-level column would change `row_key` and the tie-breaks.
+            bool_or(ao_is_dynamic_system(techniques)) AS is_dynamic_system,
             bool_or(is_call_off) AS is_call_off,
             arg_min(amount_eur, row_key) AS amount_eur,
             arg_min(amount_anomaly, row_key) AS amount_anomaly,
