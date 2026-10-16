@@ -82,14 +82,15 @@ la facture Azure du pilote.
 
 | Poste | Hypothèse | Ordre de grandeur |
 | --- | --- | --- |
-| Notes LLM (Claude Sonnet 5.5, 2 $ / 10 $ par million de tokens) | 50 notes / semaine × (≈ 2 000 tokens en entrée + ≈ 2 500 en sortie, réflexion comprise) | ≈ 50 × 0,03 $ ≈ 1,5 $ / semaine |
-| Extraction LLM (Claude Haiku 5.5, 0,10 $ / 0,50 $) | 200 avis / semaine × (1 500 + 500 tokens) | < 0,1 $ / semaine |
+| Notes LLM, modèle open-weights auto-hébergé (défaut, Qwen2.5-7B) | 50 notes / semaine en lot, mises en cache | aucun coût par token ; le coût est celui du serveur : sur CPU ≈ 1,5 à 2 min par note (≈ 1 h 30 de calcul par semaine) ; sur GPU quelques secondes par note |
+| Notes LLM, API gérée (option, ex. Claude Sonnet 5.5, 2 $ / 10 $ par million de tokens) | 50 notes / semaine × (≈ 2 000 tokens en entrée + ≈ 2 500 en sortie, réflexion comprise) | ≈ 50 × 0,03 $ ≈ 1,5 $ / semaine |
+| Extraction LLM (option, ex. Claude Haiku 5.5, 0,10 $ / 0,50 $) | 200 avis / semaine × (1 500 + 500 tokens) | < 0,1 $ / semaine |
 | Calcul (Container Apps + jobs) | dimensionnement du § 2 | à chiffrer avec le calculateur Azure ; dominé par l'API si elle reste allumée en permanence |
 | Stockage | quelques Go (Parquet, DuckDB, versions) | négligeable |
 | Power Automate | flux A : licence Premium ; flux B : connecteurs standard | selon le contrat Microsoft 365 du client |
 
-Sans clé LLM, le système fonctionne entièrement (notes déterministes) : le coût LLM est une
-option, pas une dépendance.
+Sans aucun LLM joignable, le système fonctionne entièrement (notes déterministes) : le LLM est
+une option, pas une dépendance, et l'option par défaut est gratuite (modèle open-weights local).
 
 ## 4. Supervision
 
