@@ -1,6 +1,6 @@
 # Competitor prediction backtest
 
-_Generated 2026-10-16T01:49:49+00:00 · mode `sample` · git `fe6a523220-dirty` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T23:32:39+00:00 · mode `sample` · git `f69604e36e` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 ## Setup
 
