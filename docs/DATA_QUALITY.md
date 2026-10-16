@@ -234,7 +234,7 @@ Source: generated section "Winner identifiers and entity resolution".
   with tests that fail on the previous behaviour.
 
 <!-- GENERATED:START -->
-_Generated 2026-10-16T01:05:02+00:00 · mode `sample` · git `de1cda54b6` · config `c0e408669ec8` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T01:24:27+00:00 · mode `sample` · git `fe6a523220` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
 
 ### Sources (data/manifest.json)
 
@@ -344,8 +344,8 @@ Awards per CPV division:
 | Code arrondissement | 53 | 0.1 % | 96.2 % |
 | Code region | 36 | 0.0 % | 0.0 % |
 | Code Commune | 7 | 0.0 % | 85.7 % |
-| CODE ARRONDISSEMENT | 1 | 0.0 % | 100.0 % |
 | Code canton | 1 | 0.0 % | 100.0 % |
+| CODE ARRONDISSEMENT | 1 | 0.0 % | 100.0 % |
 
 | exec_dept_source | Awards | Share |
 | --- | --- | --- |
@@ -551,8 +551,8 @@ Awards per CPV division:
 | 'Sans objet, Accord-cadre' | 61 | 0.0 % |
 | 'Accord-cadre, Concours' | 41 | 0.0 % |
 | "Sans objet, Système d'acquisition dynamique" | 38 | 0.0 % |
-| "Système d'acquisition dynamique, Sans objet" | 30 | 0.0 % |
 | "Accord-cadre, Concours, Système de qualification, Système d'acquisition dynamique, Catalogue électronique, Enchère électronique" | 30 | 0.0 % |
+| "Système d'acquisition dynamique, Sans objet" | 30 | 0.0 % |
 | 'Concours, Accord-cadre' | 28 | 0.0 % |
 | 'Concours, Sans objet' | 14 | 0.0 % |
 | 13 other values | 33 | 0.0 % |
