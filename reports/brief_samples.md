@@ -1,12 +1,14 @@
 # Brief samples for manual review
 
-_Generated 2026-10-16T18:28:34+00:00 · mode `sample` · git `4063b9d7ab-dirty` · config `b72f6a207f45` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T22:41:50+00:00 · mode `sample` · git `7267071ccc-dirty` · config `b72f6a207f45` · data snapshot `2026-10-16` · seed `20261015`_
 
 **Status: not yet reviewed.** The author edits this line after reading each brief.
 
 ## 26-100028
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 3 sentences removed > 2) · removed sentences 3
+
+_The model's draft failed; the reader gets the template below._
 
 ## Recommandation
 NO-GO. Score de la grille : 0,33 [F6].
@@ -32,6 +34,14 @@ NO-GO. Score de la grille : 0,33 [F6].
 - Part des PME parmi les titulaires comparables : 56 % [F17].
 - Offres reçues, médiane des comparables : 3 [F18].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Pourquoi | L'adéquation est de 39 %, ce qui est inférieur aux 50 % recommandés [F8]. | number '50\xa0%' matches no cited fact |
+| Pourquoi | De plus, le score de la grille est de 0,33, ce qui est en dessous de la barre des 0,5 [F6]. | number '0,5' matches no cited fact |
+| Concurrence | Le marché est ouvert, car 95 % des comparables sont de nouveaux entrants [F16]. | number '95\xa0%' matches no cited fact |
 
 <details><summary>Facts</summary>
 
@@ -86,6 +96,12 @@ L'adéquation de l'entreprise est élevée, avec 73% des autres avis de la semai
 - Les critères non évalués incluent le risque sortant et la réalisme du prix [F7].
 
 
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Concurrence | L'ouverture du marché est limitée à 92% de contrats comparables pris en compte, avec 8% de nouveaux entrants [F16]. | number '92%' matches no cited fact |
+
 <details><summary>Facts</summary>
 
 | id | label | display | sources |
@@ -139,6 +155,12 @@ L'adéquation de l'offre est très forte, avec 74% des autres avis de la semaine
 - La date limite de réponse est le 10/11/2026 [F3], et les critères non évalués sont le risque sortant et le réalisme du prix [F7].
 
 
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Concurrence | [F16] indique que 96% des comparables sont de nouveaux entrants, ce qui pourrait favoriser l'entreprise. | number '96%' matches no cited fact |
+
 <details><summary>Facts</summary>
 
 | id | label | display | sources |
@@ -172,6 +194,8 @@ L'adéquation de l'offre est très forte, avec 74% des autres avis de la semaine
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 3 sentences removed > 2) · removed sentences 3
 
+_The model's draft failed; the reader gets the template below._
+
 ## Recommandation
 NO-GO. Score de la grille : 0,27 [F6].
 
@@ -195,6 +219,14 @@ NO-GO. Score de la grille : 0,27 [F6].
 - Part des PME parmi les titulaires comparables : 44 % [F16].
 - Offres reçues, médiane des comparables : 5 [F17].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | Le score de la grille est de 0,27, ce qui est inférieur au seuil de 0,5 requis. | number without citation |
+| Concurrence | Seulement 6% des contrats comparables ont été remportés par un primo-titulaire [F14], et 86% des comparables pris en compte sont de nouveaux entrants [F15]. | number '86%' matches no cited fact |
+| Prix | Seulement 36% des comparables ont un prix exploitable [F21]. | number '36%' matches no cited fact |
 
 <details><summary>Facts</summary>
 
@@ -228,6 +260,8 @@ NO-GO. Score de la grille : 0,27 [F6].
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 3 sentences removed > 2) · removed sentences 3
 
+_The model's draft failed; the reader gets the template below._
+
 ## Recommandation
 NO-GO. Score de la grille : 0,41 [F6]. Critère d'arrêt : deadline in fewer than 15 days [F8].
 
@@ -250,6 +284,14 @@ NO-GO. Score de la grille : 0,41 [F6]. Critère d'arrêt : deadline in fewer tha
 - Part des PME parmi les titulaires comparables : 82 % [F16].
 - Offres reçues, médiane des comparables : 4 [F17].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | L'entreprise n'a pas atteint le score minimal de 0,51 requis par la grille. | number without citation |
+| Pourquoi | L'entreprise a obtenu un score de 0,41 sur la grille, ce qui est en dessous du score minimal requis de 0,51 [F6]. | number '0,51' matches no cited fact |
+| Points à vérifier | La date limite de réponse est le 26/10/2026, ce qui laisse 10 jours pour finaliser l'offre [F3]. | number '10' matches no cited fact |
 
 <details><summary>Facts</summary>
 
@@ -300,6 +342,13 @@ NO-GO.
 - La date limite de réponse est le 30/10/2026, et les critères non évalués incluent l'adéquation au profil et le risque sortant [F3, F8].
 
 
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | Le score de la grille est de 0,62, inférieur au seuil de 0,7 requis. | number without citation |
+| Pourquoi | L'entreprise n'a que 14 jours avant la date limite de réponse, ce qui est inférieur au critère d'arrêt [F9]. | number '14' matches no cited fact |
+
 <details><summary>Facts</summary>
 
 | id | label | display | sources |
@@ -333,6 +382,8 @@ NO-GO.
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 3 sentences removed > 2) · removed sentences 3
 
+_The model's draft failed; the reader gets the template below._
+
 ## Recommandation
 NO-GO. Score de la grille : 0,15 [F6]. Critère d'arrêt : deadline in fewer than 15 days [F8].
 
@@ -355,6 +406,14 @@ NO-GO. Score de la grille : 0,15 [F6]. Critère d'arrêt : deadline in fewer tha
 - Part des PME parmi les titulaires comparables : 60 % [F16].
 - Offres reçues, médiane des comparables : 4 [F17].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | Le score de la grille est de 0,15, ce qui est inférieur au seuil de 0,5 requis pour une recommandation positive. | number without citation |
+| Pourquoi | Le score de la grille est de 0,15, ce qui est inférieur au seuil de 0,5 requis pour une recommandation positive [F6]. | number '0,5' matches no cited fact |
+| Prix | Seulement 60 des 100 contrats comparables analysés ont un prix exploitable [F21], ce qui suggère une concurrence intense sur le prix. | number '100' matches no cited fact |
 
 <details><summary>Facts</summary>
 
@@ -406,6 +465,13 @@ NO-GO.
 - Les critères non évalués sont l'adéquation au profil, le risque sortant et la réalisme du prix [F7].
 
 
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | L'entreprise n'a remporté que 1 contrat comparable sur 100, ce qui est en dessous de la moyenne des 13% de nouveaux entrants. | number without citation |
+| Pourquoi | L'entreprise n'a remporté que 1 contrat comparable sur 100, ce qui est en dessous de la moyenne des 13% de nouveaux entrants [F14]. | number '1' matches no cited fact |
+
 <details><summary>Facts</summary>
 
 | id | label | display | sources |
@@ -438,6 +504,8 @@ NO-GO.
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 7 sentences removed > 2) · removed sentences 7
 
+_The model's draft failed; the reader gets the template below._
+
 ## Recommandation
 NO-GO. Score de la grille : 0,40 [F6].
 
@@ -460,6 +528,18 @@ NO-GO. Score de la grille : 0,40 [F6].
 - Part des PME parmi les titulaires comparables : 65 % [F15].
 - Offres reçues, médiane des comparables : 2 [F16].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | Le score de la grille est de 0,40, ce qui est inférieur au seuil de 0,50 requis. | number without citation |
+| Pourquoi | Le score de la grille est insuffisant, avec seulement 40% des critères satisfaisant. | number without citation |
+| Concurrence | 62% des contrats comparables ont été remportés par des nouveaux entrants. | number without citation |
+| Concurrence | 65% des comparables ont été remportés par des PME. | number without citation |
+| Prix | La fourchette de prix des comparables est de 52 000 € à 219 000 €. | number without citation |
+| Prix | Seulement 73 des 100 contrats comparables ont un prix exploitable. | number without citation |
+| Points à vérifier | La date limite de réponse est le 06/11/2026. | number without citation |
 
 <details><summary>Facts</summary>
 
@@ -492,6 +572,8 @@ NO-GO. Score de la grille : 0,40 [F6].
 
 Model `openai/qwen2.5-7b-instruct` · fallback `True` (verifier: 4 sentences removed > 2) · removed sentences 4
 
+_The model's draft failed; the reader gets the template below._
+
 ## Recommandation
 NO-GO. Score de la grille : 0,09 [F6]. Critère d'arrêt : deadline in fewer than 15 days [F8].
 
@@ -514,6 +596,15 @@ NO-GO. Score de la grille : 0,09 [F6]. Critère d'arrêt : deadline in fewer tha
 - Part des PME parmi les titulaires comparables : 52 % [F16].
 - Offres reçues, médiane des comparables : 468 [F17].
 
+
+Removed by the verifier:
+
+| section | sentence | reason |
+| --- | --- | --- |
+| Recommandation | Le score de la grille est de 0,09, ce qui est inférieur au seuil de 0,15, et les critères non évalués incluent l'adéquation au profil, le risque sortant et la réalisme du prix. | number without citation |
+| Pourquoi | Le score de la grille est de 0,09, ce qui est nettement en dessous du seuil de 0,15 [F6]. | number '0,15' matches no cited fact |
+| Prix | La fourchette de prix des comparables est de 0 € à 83 000 €, avec la médiane et le 1er quartile à 0 € [F18, F19]. | number '83\u202f000\xa0€' matches no cited fact |
+| Points à vérifier | La date limite de réponse est le 22/10/2026, ce qui est en moins de 15 jours [F3, F4]. | number '15' matches no cited fact |
 
 <details><summary>Facts</summary>
 
