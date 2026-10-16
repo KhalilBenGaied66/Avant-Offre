@@ -99,16 +99,30 @@ def run() -> Path:
         ]
     else:
         body += ["_Not run._", ""]
-    body += ["## Embedding model", ""]
-    body += (
-        [
+    body += ["## Embedding model (tuning split)", ""]
+    if embed:
+        body += [
+            common.md_table(
+                ["Model", "Recall@20", "s / 1,000 texts"],
+                [
+                    (f"`{r['model']}`", f"{r['recall@20']:.3f}", f"{r['s_per_1000']:.1f}")
+                    for r in embed.get("rows", [])
+                ],
+            ),
+            "",
+        ]
+        if ref := embed.get("reference"):
+            body += [
+                f"Reference, same companies: `{ref['method']}` Recall@20 {ref['recall@20']:.3f}.",
+                "",
+            ]
+        body += [
             f"Recommended by the selection rule: `{embed.get('recommended')}` "
             "(`reports/embed_bench.md`).",
             "",
         ]
-        if embed
-        else ["_Not run._", ""]
-    )
+    else:
+        body += ["_Not run._", ""]
     body += ["## Brief faithfulness", ""]
     if briefs and "models" in briefs:
         body += [

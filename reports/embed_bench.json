@@ -1,0 +1,34 @@
+{
+ "rows": [
+  {
+   "model": "intfloat/multilingual-e5-small",
+   "strategy": "max",
+   "recall@20": 0.20282750747033082,
+   "ndcg@20": 0.13000258664723435,
+   "s_per_1000": 8.77250341600029,
+   "index_mb": 16.652183494490668
+  },
+  {
+   "model": "intfloat/multilingual-e5-base",
+   "strategy": "mean",
+   "recall@20": 0.20162739103763969,
+   "ndcg@20": 0.1330852104145404,
+   "s_per_1000": 30.804181663000236,
+   "index_mb": 32.05067387047139
+  },
+  {
+   "model": "BAAI/bge-m3",
+   "strategy": "mean",
+   "recall@20": 0.20871643857412572,
+   "ndcg@20": 0.12389465792133714,
+   "s_per_1000": 98.09774126499995,
+   "index_mb": 42.2915767939572
+  }
+ ],
+ "recommended": "intfloat/multilingual-e5-small",
+ "reference": {
+  "method": "bm25:mean",
+  "recall@20": 0.2807980612457089,
+  "ndcg@20": 0.19360746312671762
+ }
+}

@@ -1,6 +1,6 @@
 # Avant-Offre — evaluation summary
 
-_Generated 2026-10-16T01:39:54+00:00 · mode `sample` · git `fe6a523220-dirty` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T12:07:34+00:00 · mode `sample` · git `885f629951-dirty` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
 
 ## Matching — BM25 vs CPV alerts (dense and hybrid not run)
 
@@ -32,9 +32,17 @@ Details and calibration: `reports/competitors.md`.
 
 Per CPV division: `reports/prices.md`.
 
-## Embedding model
+## Embedding model (tuning split)
 
-_Not run._
+| Model | Recall@20 | s / 1,000 texts |
+| --- | --- | --- |
+| `intfloat/multilingual-e5-small` | 0.203 | 8.8 |
+| `intfloat/multilingual-e5-base` | 0.202 | 30.8 |
+| `BAAI/bge-m3` | 0.209 | 98.1 |
+
+Reference, same companies: `bm25:mean` Recall@20 0.281.
+
+Recommended by the selection rule: `intfloat/multilingual-e5-small` (`reports/embed_bench.md`).
 
 ## Brief faithfulness
 
