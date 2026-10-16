@@ -62,7 +62,7 @@ def run(
 
     rows: list[dict[str, Any]] = []
     for model in models:
-        embedder = embedder_factory(model)
+        embedder = ctx.embedder(model)  # the same instance embeds the awards below
         embedder.encode(sample[:8])  # load + warm up
         started = time.perf_counter()
         embedder.encode(sample)
@@ -90,9 +90,14 @@ def run(
                 "recall@20": estimates[best_name]["recall@20"],
                 "ndcg@20": estimates[best_name]["ndcg@20"],
                 "s_per_1000": per_1000,
-                "index_mb": store.size_bytes("awards", model) / 1e6,
+                # Only the awards the benchmark reads are embedded: size per 10,000 vectors.
+                "index_mb": store.size_bytes("awards", model)
+                / 1e6
+                / max(1, len(store.ids("awards", model)))
+                * 10_000,
             }
         )
+        ctx.cache.pop(f"embedder:{model}", None)  # free the model before loading the next
 
     valid = [r for r in rows if not np.isnan(r["recall@20"].mean)]
     recommended = None
@@ -120,7 +125,7 @@ def run(
                 "Recall@20 [95 % CI]",
                 "nDCG@20 [95 % CI]",
                 "s / 1,000 texts",
-                "Index size (MB)",
+                "Index MB / 10,000 awards",
             ],
             [
                 (
