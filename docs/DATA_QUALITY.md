@@ -234,7 +234,7 @@ Source: generated section "Winner identifiers and entity resolution".
   with tests that fail on the previous behaviour.
 
 <!-- GENERATED:START -->
-_Generated 2026-10-16T00:50:00+00:00 · mode `sample` · git `9dcf2d0add-dirty` · config `0e0ba8fdb220` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T01:05:02+00:00 · mode `sample` · git `de1cda54b6` · config `c0e408669ec8` · data snapshot `2026-10-16` · seed `20261015`_
 
 ### Sources (data/manifest.json)
 
@@ -283,8 +283,8 @@ _Generated 2026-10-16T00:50:00+00:00 · mode `sample` · git `9dcf2d0add-dirty` 
 | UE | 9 | 0.0 % |
 | IREP | 8 | 0.0 % |
 | RIDET | 3 | 0.0 % |
-| TAHITI | 1 | 0.0 % |
 | FRWF | 1 | 0.0 % |
+| TAHITI | 1 | 0.0 % |
 
 | link_method | Rows | Share | mean confidence | flagged |
 | --- | --- | --- | --- | --- |
@@ -303,7 +303,7 @@ Hand-check sample: `reports/entity_resolution_sample.csv`.
 | framework agreements (techniques ∋ Accord-cadre) | 21,662 | 24.8 % |
 | call-off contracts (another framework's id, or nature subséquent) | 8,373 | 9.6 % |
 | amount missing | 1,106 | 1.3 % |
-| amount ≤ 0 | 1,330 | 1.5 % |
+| amount ≤ 0 | 1,324 | 1.5 % |
 | montant_anomalie = suspect | 2,763 | 3.2 % |
 | montant_anomalie = aberrant | 367 | 0.4 % |
 
@@ -328,24 +328,24 @@ Awards per CPV division:
 
 | lieuExecution_typeCode | Rows | Share | department derived |
 | --- | --- | --- | --- |
-| Code postal | 45,405 | 51.9 % | 99.8 % |
-| Code département | 27,924 | 31.9 % | 96.1 % |
+| Code postal | 45,411 | 52.0 % | 99.8 % |
+| Code département | 27,923 | 31.9 % | 96.1 % |
 | CODE DEPARTEMENT | 4,771 | 5.5 % | 96.1 % |
-| Code commune | 4,398 | 5.0 % | 99.6 % |
+| Code commune | 4,396 | 5.0 % | 99.6 % |
 | Code région | 1,696 | 1.9 % | 0.0 % |
 | (missing) | 669 | 0.8 % | 0.0 % |
-| Code pays | 612 | 0.7 % | 0.0 % |
+| Code pays | 610 | 0.7 % | 0.0 % |
 | CODE COMMUNE | 583 | 0.7 % | 99.1 % |
 | Code Postal | 445 | 0.5 % | 91.2 % |
 | CODE POSTAL | 422 | 0.5 % | 98.1 % |
 | CODE PAYS | 200 | 0.2 % | 0.0 % |
 | Code departement | 126 | 0.1 % | 93.7 % |
 | CODE REGION | 56 | 0.1 % | 0.0 % |
-| Code arrondissement | 54 | 0.1 % | 96.3 % |
+| Code arrondissement | 53 | 0.1 % | 96.2 % |
 | Code region | 36 | 0.0 % | 0.0 % |
 | Code Commune | 7 | 0.0 % | 85.7 % |
-| Code canton | 1 | 0.0 % | 100.0 % |
 | CODE ARRONDISSEMENT | 1 | 0.0 % | 100.0 % |
+| Code canton | 1 | 0.0 % | 100.0 % |
 
 | exec_dept_source | Awards | Share |
 | --- | --- | --- |
@@ -370,7 +370,7 @@ Awards per CPV division:
 
 | offresRecues: n | median | P90 | rows = 0 |
 | --- | --- | --- | --- |
-| 61,194 | 3 | 15 | 347 |
+| 61,194 | 3 | 15 | 348 |
 
 ### Companies and personal data
 
