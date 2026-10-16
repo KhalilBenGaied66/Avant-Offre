@@ -70,6 +70,33 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — The LLM path is free by default and provider-neutral
+Context: the project must run without paying per token, and a company adopting it will bring
+its own endpoint (a GPU it runs, or managed models in its own cloud tenant) with its own data
+rules. The brief writer was wired to a paid API key.
+Decision: the code speaks one interface, the OpenAI-compatible chat API or a provider LiteLLM
+knows, configured per task in `config/models.yaml` (`api_base`, `api_key_env`, `timeout_s`,
+`num_retries`; `AVANT_OFFRE_LLM_API_BASE` overrides the endpoint at deployment). The default
+is an open-weights model (Apache-2.0) on llama.cpp's server, built from a pinned tag by
+`make llm-local`. An endpoint that is down, slow or overloaded raises `LLMUnavailableError`
+and the verified deterministic brief is served: the service never fails because of the LLM.
+Briefs are cached by facts + model settings + prompt + verifier limits, and a weekly batch
+(`avant-offre briefs`) precomputes the shortlist's briefs, so a reviewer never waits on a CPU
+model and no brief is generated twice.
+Alternatives considered: free hosted API tiers (data leaves to a third party, quotas, terms that
+may allow training on inputs); generating inside the API process with `transformers` (model
+memory and latency tied to the web process, no independent scaling, and a new direct
+dependency); Ollama (needs its own registry host; llama.cpp is the same engine with a pinned,
+reproducible build); dropping the LLM for the template alone (kept as the fallback; the
+evaluation decides whether the model adds anything).
+Evidence: `tests/test_gateway.py` (endpoint resolution, deployment override, unreachable
+server and connection errors become "unavailable", call parameters),
+`tests/test_engine_backtests.py::test_brief_cache_reuses_model_briefs_only`,
+`tests/test_interfaces.py::test_weekly_brief_batch_command`; docs/HANDOFF.md §2.1.
+Revisit if: a company endpoint is chosen (change `config/models.yaml`, rerun `make eval-sample`
+with the old model as an `alternatives` entry), or several API replicas need a shared brief
+cache (move `briefs` to PostgreSQL, HANDOFF §2).
+
 ### 2026-10-16 — Real data: step 6 applied — BM25 ships, no hybrid, no reranker
 Context: full matching backtest on real awards (`reports/matching.md`, 382 test companies, t0 =
 2025-01-01): CPV alerts, BM25, dense (`multilingual-e5-small`), their RRF hybrid, and the hybrid

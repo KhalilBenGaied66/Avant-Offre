@@ -93,7 +93,7 @@ pas BM25.
 | Extraction des faits de l'avis | IA en repli | Champs eForms d'abord ; le LLM ne lit que du texte, jamais un montant ou une date, avec citation vérifiée mot pour mot |
 | Appariement avis ↔ profil | Sans IA (IA testée, écartée) | Embeddings, hybride et reranker mesurés sur le backtest : aucun ne bat BM25, qui est livré seul |
 | Intelligence de marché, grille go / no-go | Sans IA | Agrégations SQL traçables ; grille éditée par le bureau des offres |
-| Note d'une page | IA | Le LLM ne reçoit que des faits calculés ; chaque chiffre est vérifié, sinon modèle déterministe |
+| Note d'une page | IA | Le LLM ne reçoit que des faits calculés ; chaque chiffre est vérifié, sinon modèle déterministe. Par défaut, modèle open-weights gratuit servi localement ; API gérée ou GPU interne par simple configuration |
 | Questions ponctuelles | IA (modèle du client) | Agent MCP qui appelle les mêmes outils SQL, jamais sa mémoire |
 | Diffusion hebdomadaire | Low-code | Flux Power Automate déjà gouverné par l'IT |
 | Décision | Humain | Le comité porte la décision et son risque |
@@ -186,7 +186,7 @@ Prérequis : Python 3.12 et [uv](https://docs.astral.sh/uv/), Node 22 pour la pa
 Accès réseau aux hôtes listés dans `reports/check_sources.md`.
 
 ```bash
-cp .env.example .env            # ANTHROPIC_API_KEY (facultatif), AVANT_OFFRE_API_KEY
+cp .env.example .env            # AVANT_OFFRE_API_KEY ; aucune clé LLM requise
 make setup                      # dépendances (sans le runtime des modèles)
 make lint test                  # ruff, mypy strict, pytest
 make check-sources              # accessibilité des sources de données
@@ -195,6 +195,8 @@ make data-sample quality        # DECP + SIRENE + BOAMP (périmètre réduit), d
 make index-sample               # index BM25 des marchés attribués
 make eval-sample                # tous les backtests -> reports/
 make setup-full                 # + embeddings et reranker (torch, sentence-transformers)
+make llm-local                  # LLM gratuit et local sur :8080 (llama.cpp, Qwen2.5-7B, 4,7 Go)
+uv run avant-offre briefs --siret <SIRET>         # notes de la semaine, en lot, mises en cache
 
 make serve                      # API FastAPI sur :8000 (documentation OpenAPI sur /docs)
 make web-install web            # page de revue sur :5173
