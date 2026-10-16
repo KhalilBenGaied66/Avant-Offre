@@ -12,10 +12,9 @@ et les rapports d'évaluation sont faits pour être relus.
 > **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte). Les données
 > réelles sont ingérées sur le périmètre échantillon (DECP du 15/10/2026, avis BOAMP ouverts du
 > 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`. Les backtests sans modèle
-> ont tourné (appariement CPV / BM25, concurrents, prix : voir « Résultats mesurés »). Restent à
-> mesurer : les embeddings, l'hybride et le reranker (Hugging Face est bloqué depuis
-> l'environnement de développement) et la fidélité des notes LLM (clé d'API requise). Aucun
-> chiffre n'a été estimé à la place d'un run.
+> ont tourné (appariement CPV / BM25, embeddings, concurrents, prix : voir « Résultats
+> mesurés »). Restent à mesurer : l'hybride et le reranker, et la fidélité des notes LLM (clé
+> d'API requise). Aucun chiffre n'a été estimé à la place d'un run.
 
 ## Le besoin
 
@@ -136,7 +135,18 @@ les marchés les plus fermés (environ 4 % de primo-titulaires observés).
 (division 72), elle n'en couvre que 35 % et 50 % : la fourchette n'est plus affichée pour ce
 domaine et le critère de prix de la grille y reste « non évalué », avec la raison.
 
-Pas encore mesurés : modèles d'embeddings (`reports/embed_bench.md`), hybride et reranker
+**Modèles d'embeddings** (`reports/embed_bench.md`, échantillon de réglage, 101 entreprises) :
+seuls, les trois modèles testés font moins bien que BM25 sur les mêmes entreprises.
+
+| Modèle | Recall@20 | s / 1 000 titres (CPU) |
+| --- | --- | --- |
+| `multilingual-e5-small` (retenu) | 0,203 | 8,8 |
+| `multilingual-e5-base` | 0,202 | 30,8 |
+| `bge-m3` | 0,209 | 98,1 |
+| Référence : BM25, profil moyen | 0,281 | — |
+
+Les embeddings ne seront utilisés que si l'hybride BM25 + embeddings bat BM25 seul, avec un
+intervalle de confiance au-dessus de 0. Pas encore mesurés : hybride et reranker
 (`reports/matching.md`), fidélité des notes LLM (`reports/brief_faithfulness.md`).
 
 ## Limites

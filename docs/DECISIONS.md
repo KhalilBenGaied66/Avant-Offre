@@ -70,6 +70,22 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Real data: multilingual-e5-small stays the embedding model; dense alone trails BM25
+Context: SPEC §7.5 benchmark on the tuning split of the real matching backtest (101 companies),
+three candidates, CPU timings on 1,000 award titles.
+Decision: keep `intfloat/multilingual-e5-small` as `embeddings.default`, as the selection rule
+picks (fastest model within 0.01 Recall@20 of the best). No candidate beats BM25 on its own, so
+`search.retrievers` stays `[bm25]` until the hybrid backtest (`reports/matching.md`) applies
+step 6.
+Alternatives considered: `BAAI/bge-m3` (best point estimate by 0.006, intervals overlapping,
+11× slower and 2.5× the index size); `multilingual-e5-base` (no gain over small, 3.5× slower).
+Evidence: `reports/embed_bench.md` — Recall@20 e5-small 0.203 [0.142, 0.266], e5-base 0.202
+[0.141, 0.269], bge-m3 0.209 [0.144, 0.269]; 8.8 / 30.8 / 98.1 s per 1,000 titles; reference
+`bm25:mean` on the same companies 0.281 [0.204, 0.347]. The benchmark embeds only the awards a
+run reads (28,596 per model instead of all 86,930).
+Revisit if: the hybrid backtest shows a gain that depends on the embedding model, or notice
+texts (longer than award titles) become the matching input.
+
 ### 2026-10-16 — Real data: no price band where the backtest says it fails
 Context: `reports/prices.md` on real awards. Overall the bands are close to target ([P25, P75]
 covers 0.483 [0.466, 0.499] of actual amounts, target ≈ 0.5; [P10, P90] 0.751 [0.736, 0.764],

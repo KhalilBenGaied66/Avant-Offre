@@ -11,7 +11,7 @@ git commit, config hash, data snapshot date and seed.
 | `entity_resolution_sample.csv` | `make data-sample` | generated on real data (sole traders pseudonymized, their SIREN removed) |
 | `matching_baselines.md` / `.json` | `avant-offre eval matching-baselines` | generated on real data |
 | `matching.md` / `.json` | `avant-offre eval matching` | not generated yet (needs the model runtime and Hugging Face) |
-| `embed_bench.md` / `.json` | `avant-offre eval embed` | not generated yet (needs the model runtime and Hugging Face) |
+| `embed_bench.md` / `.json` | `avant-offre eval embed` | generated on real data |
 | `competitors.md` / `.json`, `competitors_calibration.png` | `avant-offre eval competitors` | generated on real data |
 | `prices.md` / `.json` | `avant-offre eval prices` | generated on real data |
 | `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | written as "not run" (no LLM key in the build environment); no number reported |
