@@ -119,6 +119,7 @@ eval:
   brief_sample_size: 50
   brief_review_samples: 10
   max_test_awards: 5000       # competitor / price backtests: seeded sample of test awards
+  rerank_max_companies: 100   # reranker: seeded sample of test companies (CPU ~23 s / company)
 
 brief:
   max_words: 250
