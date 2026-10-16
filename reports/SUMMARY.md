@@ -1,17 +1,21 @@
 # Avant-Offre — evaluation summary
 
-_Generated 2026-10-16T12:07:34+00:00 · mode `sample` · git `885f629951-dirty` · config `e4d5f2ef0ad9` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-16T14:59:14+00:00 · mode `sample` · git `e9ff9e1dcc` · config `b5e3d8c78320` · data snapshot `2026-10-16` · seed `20261015`_
 
-## Matching — BM25 vs CPV alerts (dense and hybrid not run)
+## Matching — hybrid vs CPV alerts
 
 | Method | test companies | Recall@20 | nDCG@20 | ms / company |
 | --- | --- | --- | --- | --- |
 | `cpv_alert` | 382 | 0.021 | 0.012 | 0.6 |
-| `cpv_alert:freq` | 382 | 0.139 | 0.079 | 1.1 |
-| `bm25:max` | 382 | 0.200 | 0.148 | 3.0 |
-| `bm25:mean` | 382 | 0.270 | 0.191 | 2.6 |
+| `cpv_alert:freq` | 382 | 0.139 | 0.079 | 1.2 |
+| `bm25:max` | 382 | 0.200 | 0.148 | 2.7 |
+| `bm25:mean` | 382 | 0.270 | 0.191 | 2.9 |
+| `dense:intfloat/multilingual-e5-small:max` | 382 | 0.209 | 0.161 | 300.9 |
+| `dense:intfloat/multilingual-e5-small:mean` | 382 | 0.197 | 0.143 | 302.0 |
+| `hybrid:bm25:mean+dense:intfloat/multilingual-e5-small:max` | 382 | 0.258 | 0.194 | 309.1 |
+| `hybrid_rerank:bm25:mean+dense:intfloat/multilingual-e5-small:max` | 100 | 0.237 | 0.168 | 22498.4 |
 
-Chosen on the tuning split: `cpv_alert:freq`, `bm25:mean`. CIs and the decision rule: `reports/matching_baselines.md`.
+Chosen on the tuning split: `cpv_alert:freq`, `bm25:mean`, `dense:intfloat/multilingual-e5-small:max`, `hybrid:bm25:mean+dense:intfloat/multilingual-e5-small:max`, `hybrid_rerank:bm25:mean+dense:intfloat/multilingual-e5-small:max`. CIs and the decision rule: `reports/matching.md`.
 
 ## Competitor prediction
 
