@@ -7,8 +7,8 @@ git commit, config hash, data snapshot date and seed.
 
 | File | Produced by | Status |
 | --- | --- | --- |
-| `check_sources.md` | `make check-sources` | generated (all data hosts blocked from the build environment) |
-| `entity_resolution_sample.csv` | `make data-sample` | not generated yet |
+| `check_sources.md` | `make check-sources` | generated (data hosts reachable but intermittent; Hugging Face blocked) |
+| `entity_resolution_sample.csv` | `make data-sample` | generated on real data (sole traders pseudonymized, their SIREN removed) |
 | `matching_baselines.md` / `.json` | `avant-offre eval matching-baselines` | not generated yet |
 | `matching.md` / `.json` | `avant-offre eval matching` | not generated yet |
 | `embed_bench.md` / `.json` | `avant-offre eval embed` | not generated yet |
@@ -17,5 +17,5 @@ git commit, config hash, data snapshot date and seed.
 | `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | not generated yet (needs an LLM key) |
 | `SUMMARY.md` | `avant-offre eval summary` | not generated yet |
 
-"Not generated yet" means the data sources were unreachable when the code was written; it does
-not mean the report failed.
+"Not generated yet" means the backtests have not run yet (`make eval-sample`); it does not mean
+a report failed.

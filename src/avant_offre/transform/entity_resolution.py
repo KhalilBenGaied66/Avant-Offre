@@ -337,6 +337,12 @@ def write_review_sample(
         group = by_method[method]
         picked += rng.sample(group, min(per, len(group)))
     picked = picked[:n]
+    legal_person = {
+        str(k): natural is False
+        for k, natural in conn.execute(
+            "SELECT company_key, is_natural_person FROM company_names"
+        ).fetchall()
+    }
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
@@ -356,5 +362,8 @@ def write_review_sample(
         for method, id_type, raw_name, key, siren, conf, flagged in picked:
             shown = display(str(raw_name) if raw_name else None, str(key) if key else None)
             linked = display(None, str(siren)) if siren else ""
-            w.writerow([method, id_type, shown, linked, siren or "", conf, flagged, "", ""])
+            # A sole trader's SIREN finds the person's name in SIRENE: only legal persons keep
+            # it (fail closed when the status is unknown).
+            siren_shown = siren if siren and legal_person.get(str(siren)) is True else ""
+            w.writerow([method, id_type, shown, linked, siren_shown, conf, flagged, "", ""])
     return len(picked)

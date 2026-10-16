@@ -62,6 +62,7 @@ class _Model(CompetitorModel):
         self.winners = {"u1": ["A"], "u2": ["A", "B"], "u3": ["C"]}
         self.buyer_history = {("A", "B1")}
         self.names = {"A": "ALPHA", "B": "BETA", "C": "GAMMA"}
+        self.public_ids = {"A": "A", "B": "B"}  # C unknown: hashed
 
 
 def test_competitor_score_formula_and_flags(monkeypatch: pytest.MonkeyPatch) -> None:

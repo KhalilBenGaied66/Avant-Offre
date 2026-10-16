@@ -27,10 +27,12 @@ from pydantic import BaseModel, Field
 
 from avant_offre.intel.comparables import Comparable
 from avant_offre.settings import get_settings
+from avant_offre.transform.privacy import public_key
 
 
 class Competitor(BaseModel):
-    company_key: str
+    company_key: str = Field(exclude=True)  # internal (SIREN): never serialized
+    public_id: str  # privacy.public_key: the SIREN of a legal person, an opaque hash otherwise
     name: str
     score: float
     comparable_wins: int
@@ -57,9 +59,13 @@ class CompetitorModel:
             self.winners[uid].append(key)
             if buyer:
                 self.buyer_history.add((key, buyer))
-        self.names = dict(
-            conn.execute("SELECT company_key, display_name FROM company_names").fetchall()
-        )
+        self.names: dict[str, str] = {}
+        self.public_ids: dict[str, str] = {}
+        for key, name, natural in conn.execute(
+            "SELECT company_key, display_name, is_natural_person FROM company_names"
+        ).fetchall():
+            self.names[key] = name
+            self.public_ids[key] = public_key(key, natural)
 
     def predict(
         self,
@@ -96,6 +102,7 @@ class CompetitorModel:
         return [
             Competitor(
                 company_key=k,
+                public_id=self.public_ids.get(k) or public_key(k, None),
                 name=self.names.get(k, "Titulaire non vérifié"),
                 score=round(score[k], 6),
                 comparable_wins=len(wins[k]),

@@ -334,3 +334,20 @@ def test_llm_text_of_national_notice_excludes_contact_person() -> None:
     assert "Critères énoncés dans les documents de la consultation" in text
     assert "Secteur nord" in text
     assert "Fictif" not in text and "example.test" not in text
+
+
+def test_llm_text_includes_eforms_criteria_written_as_text() -> None:
+    doc = {
+        "EFORMS": {
+            "ContractNotice": {
+                "cac:AwardingCriterion": {
+                    "cbc:CalculationExpression": {
+                        "@languageID": "FRA",
+                        "#text": "Prix des prestations (50%)\nValeur technique (50%)",
+                    }
+                }
+            }
+        }
+    }
+    text = llm_extract.notice_text("Objet", json.dumps({"donnees": json.dumps(doc)}))
+    assert "Prix des prestations (50%)" in text

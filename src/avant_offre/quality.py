@@ -163,7 +163,20 @@ def section_awards(conn: duckdb.DuckDBPyConnection) -> list[str]:
             ],
         )
     )
-    out += ["", "Hand-check sample: `reports/entity_resolution_sample.csv`.", ""]
+    unresolved = scalar(conn, "SELECT count(*) FROM award_winners WHERE link_method = 'none'")
+    nameless = scalar(
+        conn,
+        "SELECT count(*) FROM award_winners WHERE link_method = 'none' "
+        "AND nullif(trim(winner_name_raw), '') IS NULL",
+    )
+    out += [
+        "",
+        f"Unresolved winner rows with no name (fuzzy matching impossible): {fmt(nameless)} of "
+        f"{fmt(unresolved)} ({pct(nameless, unresolved)}).",
+        "",
+        "Hand-check sample: `reports/entity_resolution_sample.csv`.",
+        "",
+    ]
 
     out += ["### Amounts and framework agreements", ""]
     out.append(
@@ -177,7 +190,7 @@ def section_awards(conn: duckdb.DuckDBPyConnection) -> list[str]:
                         scalar(conn, "SELECT count(*) FROM awards WHERE is_framework"),
                     ),
                     (
-                        "call-off contracts (idAccordCadre set)",
+                        "call-off contracts (another framework's id, or nature subséquent)",
                         scalar(conn, "SELECT count(*) FROM awards WHERE is_call_off"),
                     ),
                     (
