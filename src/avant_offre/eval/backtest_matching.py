@@ -6,7 +6,10 @@ where the company won before ``t0``; positives are the company's own awards in t
 method ranks the same pool. Metrics are averaged over companies with bootstrap CIs.
 
 Methods are named ``family[:variant]``:
-- ``cpv_alert``      — candidates sharing a CPV group with past wins, newest first (an alert feed);
+- ``cpv_alert``      — candidates sharing a CPV group with past wins, newest first (an alert feed,
+                       SPEC §7.2);
+- ``cpv_alert:freq`` — the same candidates ranked by how often the company won their exact CPV
+                       code, then their CPV group, then newest first: a stronger non-AI baseline;
 - ``bm25:max|mean``  — BM25, max-similarity or mean over past wins;
 - ``dense:<model>:max|mean``, ``hybrid``, ``hybrid_rerank`` — added in M3 (``search/dense.py``).
 Variant choices are made on the tuning split only; the test split is reported for every method.
@@ -43,7 +46,9 @@ from avant_offre.search.profile import Profile, from_company
 from avant_offre.search.rerank import PairScorer, default_scorer
 from avant_offre.search.rerank import rerank as rerank_candidates
 from avant_offre.settings import get_models, get_settings
+from avant_offre.store import db
 from avant_offre.store.vectors import VectorStore
+from avant_offre.transform.privacy import public_key
 
 log = logging.getLogger(__name__)
 
@@ -202,16 +207,23 @@ def build_cases(ctx: Context, t0: date, t1: date) -> list[Case]:
 # ---- rankers -------------------------------------------------------------------------------
 
 
-def cpv_alert(ctx: Context, _variant: str) -> Ranker:
+def cpv_alert(ctx: Context, variant: str) -> Ranker:
     digits = get_settings().search.cpv_group_digits
     corpus = ctx.corpus
-    groups = np.array([(c or "")[:digits] for c in corpus.cpvs], dtype=object)
+    codes = np.array([c or "" for c in corpus.cpvs], dtype=object)
+    groups = np.array([c[:digits] for c in codes], dtype=object)
 
     def rank(case: Case) -> np.ndarray:
-        wanted = {c[:digits] for c in case.profile.cpvs if c}
+        wanted = Counter(c[:digits] for c in case.profile.cpvs if c)
         pool = case.pool[np.isin(groups[case.pool], list(wanted))] if wanted else case.pool[:0]
         recency = corpus.days[pool]
-        return np.asarray(pool[np.lexsort((pool, -recency))])
+        if variant != "freq":
+            return np.asarray(pool[np.lexsort((pool, -recency))])
+        exact = Counter(c for c in case.profile.cpvs if c)
+        n_exact = np.array([exact.get(c, 0) for c in codes[pool]], dtype=float)
+        n_group = np.array([wanted.get(g, 0) for g in groups[pool]], dtype=float)
+        # np.lexsort: the last key is the primary one.
+        return np.asarray(pool[np.lexsort((pool, -recency, -n_group, -n_exact))])
 
     return rank
 
@@ -356,12 +368,16 @@ def summarize(
     cases: list[Case],
     split: Split,
     sme_only: bool,
+    division: str | None = None,
 ) -> dict[str, dict[str, Estimate]]:
     s = get_settings()
     keys = [
         c.company_key
         for c in cases
-        if c.split == split and c.positives and (not sme_only or c.size_category == SME)
+        if c.split == split
+        and c.positives
+        and (not sme_only or c.size_category == SME)
+        and (division is None or c.division == division)
     ]
     return {
         m: {
@@ -372,6 +388,19 @@ def summarize(
         }
         for m, per in results.items()
     }
+
+
+def public_ids(conn: duckdb.DuckDBPyConnection) -> Callable[[str], str]:
+    """company_key -> privacy.public_key, failing closed for keys without a known status."""
+    known: dict[str, str] = {}
+    if db.table_exists(conn, "company_names"):
+        known = {
+            k: public_key(k, natural)
+            for k, natural in conn.execute(
+                "SELECT company_key, is_natural_person FROM company_names"
+            ).fetchall()
+        }
+    return lambda k: known.get(k) or public_key(k, None)
 
 
 def choose_on_tuning(
@@ -564,6 +593,22 @@ def run(
             _summary_table(tables[key], timings),
             "",
         ]
+    divisions = sorted({c.division for c in cases if c.division and c.split == "test"})
+    if len(divisions) > 1:
+        rows = []
+        for div in divisions:
+            per_div = summarize(results, cases, "test", False, division=div)
+            for m, est in per_div.items():
+                rows.append((div, f"`{m}`", est["recall@20"].n, est["recall@20"].fmt()))
+        body += [
+            "## Test split — by main CPV division of the company",
+            "",
+            "Recall@20, all sizes. One division can dominate the sample (DATA_QUALITY, CPV codes);"
+            " a method that wins overall should also be read division by division.",
+            "",
+            common.md_table(["Division", "Method", "n", "recall@20 [95 % CI]"], rows),
+            "",
+        ]
     body += [
         "## Choices made on the tuning split",
         "",
@@ -601,13 +646,16 @@ def run(
         "",
     ]
     path = common.write_report(report_name, title, body)
+    # Committed file: companies appear under privacy.public_key (a sole trader's SIREN would
+    # find the person in SIRENE).
+    pub = public_ids(conn)
     raw = {
         "methods": list(results),
         "chosen_on_tuning": chosen,
         "ms_per_company": timings,
         "cases": [
             {
-                "company": c.company_key,
+                "company": pub(c.company_key),
                 "split": c.split,
                 "size": c.size_category,
                 "division": c.division,
@@ -616,7 +664,7 @@ def run(
             }
             for c in cases
         ],
-        "per_company": results,
+        "per_company": {m: {pub(k): v for k, v in per.items()} for m, per in results.items()},
     }
     common.write_json(report_name.replace(".md", ".json"), raw)
     summary = {
@@ -637,7 +685,7 @@ def run_baselines(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     """M2: CPV alert and BM25 baselines → reports/matching_baselines.md."""
     return run(
         conn,
-        ["cpv_alert", "bm25:max", "bm25:mean"],
+        ["cpv_alert", "cpv_alert:freq", "bm25:max", "bm25:mean"],
         "matching_baselines.md",
         "Matching backtest — baselines (CPV alerts, BM25)",
         headline=("bm25", "cpv_alert"),
@@ -657,7 +705,14 @@ def run_full(conn: duckdb.DuckDBPyConnection, ctx: Context | None = None) -> dic
     model = get_models().embeddings.default
     return run(
         conn,
-        ["cpv_alert", "bm25:max", "bm25:mean", f"dense:{model}:max", f"dense:{model}:mean"],
+        [
+            "cpv_alert",
+            "cpv_alert:freq",
+            "bm25:max",
+            "bm25:mean",
+            f"dense:{model}:max",
+            f"dense:{model}:mean",
+        ],
         "matching.md",
         "Matching backtest — CPV alerts, BM25, dense, hybrid, reranker",
         headline=("hybrid", "cpv_alert"),
