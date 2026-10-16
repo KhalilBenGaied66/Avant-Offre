@@ -20,8 +20,20 @@ def git_commit() -> str:
         )
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
+    # Dirty = an uncommitted change that can affect results. Generated reports and docs are left
+    # out: a chain of runs rewrites them, and every report after the first would say "dirty".
     dirty = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=no"],  # noqa: S607
+        [  # noqa: S607
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+            "--",
+            ".",
+            ":(exclude)reports",
+            ":(exclude)docs",
+            ":(exclude)*.md",
+        ],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
