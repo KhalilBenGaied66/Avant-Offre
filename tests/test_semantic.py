@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -122,3 +123,20 @@ def test_vectors_embed_only_what_a_run_reads(ctx: bm.Context) -> None:
     ctx.conn.execute("UPDATE awards SET objet = NULL WHERE uid = ?", [ids[10]])
     v = ctx.vectors("test/counting", [ids[10], ids[0]])
     assert v.shape[0] == 2 and not v[0].any() and v[1].any()
+
+
+def test_reranker_is_evaluated_on_a_seeded_test_sample(
+    ctx: bm.Context, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AVANT_OFFRE_EVAL__RERANK_MAX_COMPANIES", "2")
+    reset_caches()
+    out = bm.run_full(ctx.conn, ctx=ctx)
+    raw = json.loads(Path(out["report"]).with_suffix(".json").read_text(encoding="utf-8"))
+    rerank = next(m for m in raw["methods"] if m.startswith("hybrid_rerank"))
+    hybrid = next(m for m in raw["methods"] if m.startswith("hybrid:"))
+    assert len(raw["per_company"][rerank]) == 2  # capped
+    assert len(raw["per_company"][hybrid]) > 2  # the other methods see every company
+    split = {c["company"]: c["split"] for c in raw["cases"]}
+    assert {split[k] for k in raw["per_company"][rerank]} == {"test"}
+    assert out["chosen"]["hybrid_rerank"] == rerank  # single variant: nothing to tune
+    assert "(n = 2)" in Path(out["report"]).read_text(encoding="utf-8")

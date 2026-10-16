@@ -383,8 +383,9 @@ def evaluate(
     first-time embedding excluded: they are warmed up on the first case).
     """
     results: dict[str, dict[str, dict[str, float]]] = {}
-    scored = [c for c in cases if c.positives]
+    all_scored = [c for c in cases if c.positives]
     for name in methods:
+        scored = _rerank_sample(all_scored) if name.startswith("hybrid_rerank") else all_scored
         ranker = make_ranker(ctx, name)
         if scored:
             ranker(scored[0])  # warm-up: builds indexes / embeds once
@@ -394,6 +395,16 @@ def evaluate(
             timings[name] = 1000 * (time.perf_counter() - started) / len(scored)
         log.info("%s done on %d companies", name, len(scored))
     return results
+
+
+def _rerank_sample(scored: list[Case]) -> list[Case]:
+    """Test companies the reranker is evaluated on (``eval.rerank_max_companies``, seeded)."""
+    s = get_settings()
+    test = [c for c in scored if c.split == "test"]
+    cap = s.eval.rerank_max_companies
+    if cap is None or len(test) <= cap:
+        return test
+    return sorted(random.Random(s.seed).sample(test, cap), key=lambda c: c.company_key)
 
 
 def summarize(
@@ -448,6 +459,13 @@ def choose_on_tuning(
             continue
         if family not in best or v > best[family][0]:
             best[family] = (v, name)
+    # A family with one method and no tuning result (the reranker, evaluated on test companies
+    # only) has nothing to choose.
+    families = Counter(name.partition(":")[0] for name in summary)
+    for name in summary:
+        family = name.partition(":")[0]
+        if family not in best and families[family] == 1:
+            best[family] = (float("nan"), name)
     return {f: n for f, (_, n) in best.items()}
 
 
@@ -504,9 +522,10 @@ def _rule_outcomes(
     keys = [c.company_key for c in cases if c.split == "test" and c.positives]
 
     def diff(a: str, b: str) -> Estimate:
+        both = [k for k in keys if k in results[a] and k in results[b]]  # paired companies
         return paired_bootstrap_diff(
-            [results[a][k]["recall@20"] for k in keys],
-            [results[b][k]["recall@20"] for k in keys],
+            [results[a][k]["recall@20"] for k in both],
+            [results[b][k]["recall@20"] for k in both],
             s.eval.bootstrap_resamples,
             s.seed,
         )
@@ -529,7 +548,8 @@ def _rule_outcomes(
             extra = ""
             if fa == "hybrid_rerank" and a in timings and b in timings:
                 extra = f"+{timings[a] - timings[b]:.0f} ms / company"
-            rows.append((f"`{a}` − `{b}`", d.fmt(), verdict, extra))
+            label = f"`{a}` − `{b}`" + (f" (n = {d.n})" if d.n < len(keys) else "")
+            rows.append((label, d.fmt(), verdict, extra))
     if rows:
         lines += [
             common.md_table(
@@ -590,6 +610,7 @@ def run(
     span = conn.execute(
         "SELECT min(notified_on), max(notified_on) FROM awards WHERE notified_on < ?", [w.t0]
     ).fetchone()
+    reranked = next((v for k, v in results.items() if k.startswith("hybrid_rerank")), {})
     body = [
         "## Setup",
         "",
@@ -610,6 +631,15 @@ def run(
         "won before t0); positives outside the pool are counted below.",
         "- `ms / company`: mean ranking time per company on this machine (indexes and embeddings "
         "built beforehand).",
+        *(
+            [
+                f"- Reranker: evaluated on {len(reranked):,} test companies (a seeded sample "
+                "when `eval.rerank_max_companies` is set: the cross-encoder is slow on CPU); "
+                "every comparison with it is paired on those companies."
+            ]
+            if reranked
+            else []
+        ),
         "",
         "## Positives per company",
         "",

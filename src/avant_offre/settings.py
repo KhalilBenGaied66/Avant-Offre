@@ -177,6 +177,9 @@ class EvalConfig(BaseModel):
     brief_sample_size: int = 50
     brief_review_samples: int = 10
     max_test_awards: int = 5000
+    # The cross-encoder costs ~23 s per company on a 4-core CPU: it is evaluated on a seeded
+    # sample of test companies, paired with the hybrid on the same companies. None = all.
+    rerank_max_companies: int | None = None
 
 
 class BriefConfig(BaseModel):
