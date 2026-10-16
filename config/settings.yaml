@@ -118,6 +118,9 @@ eval:
   embed_tolerance: 0.01     # embed bench: fastest model within this Recall@20 of the best
   brief_sample_size: 50
   brief_review_samples: 10
+  # Used on 2026-10-16 to choose the local model and the prompt skeleton (DECISIONS): the brief
+  # report shows results with and without them.
+  brief_dev_notices: ["26-100028", "26-100270", "26-100330"]
   max_test_awards: 5000       # competitor / price backtests: seeded sample of test awards
   rerank_max_companies: 100   # reranker: seeded sample of test companies (CPU ~23 s / company)
 

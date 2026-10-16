@@ -6,7 +6,7 @@
 # vLLM or TGI on a GPU, or a managed endpoint in its own cloud tenant (docs/HANDOFF.md §2).
 #
 # First run: builds llama-server from a pinned release tag and downloads the model weights
-# from Hugging Face (about 1 GB). Later runs start in seconds. Everything lives under
+# from Hugging Face (about 4.7 GB, two shards). Later runs start in seconds. Everything lives under
 # $AVANT_OFFRE_TOOLS (default ~/.cache/avant-offre), outside the repository.
 #
 #   scripts/llm_local.sh            # build if needed, download if needed, serve on :8080
@@ -15,9 +15,9 @@ set -euo pipefail
 
 TOOLS="${AVANT_OFFRE_TOOLS:-$HOME/.cache/avant-offre}"
 LLAMA_CPP_TAG="${LLAMA_CPP_TAG:-b11699}"
-MODEL_REPO="${LLM_MODEL_REPO:-Qwen/Qwen2.5-1.5B-Instruct-GGUF}"
-MODEL_FILE="${LLM_MODEL_FILE:-qwen2.5-1.5b-instruct-q4_k_m.gguf}"
-MODEL_ALIAS="${LLM_MODEL_ALIAS:-qwen2.5-1.5b-instruct}"  # the name config/models.yaml uses
+MODEL_REPO="${LLM_MODEL_REPO:-Qwen/Qwen2.5-7B-Instruct-GGUF}"
+MODEL_FILE="${LLM_MODEL_FILE:-qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf}"
+MODEL_ALIAS="${LLM_MODEL_ALIAS:-qwen2.5-7b-instruct}"  # the name config/models.yaml uses
 PORT="${LLM_PORT:-8080}"
 CONTEXT="${LLM_CONTEXT:-8192}"
 

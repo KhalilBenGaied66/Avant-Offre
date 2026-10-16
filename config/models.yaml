@@ -2,9 +2,12 @@
 # speaks the OpenAI-compatible chat API or a provider LiteLLM knows; switching is a config change.
 #
 # Default: a free, private open-weights model on a local llama.cpp server
-# (`make llm-local`, scripts/llm_local.sh). Qwen2.5-1.5B-Instruct: Apache-2.0, multilingual,
-# small enough for a 4-core CPU. A brief it gets wrong is caught by the verifier and replaced by
-# the deterministic template; the measured pass rate is in reports/brief_faithfulness.md.
+# (`make llm-local`, scripts/llm_local.sh): Qwen2.5-7B-Instruct, Apache-2.0, multilingual,
+# 4-bit quantized (4.7 GB). On a 4-core CPU a brief takes about 1.5-2 minutes: fine for the
+# weekly batch (`avant-offre briefs`) and the cache, too slow for interactive use, which needs a
+# GPU endpoint. The 1.5B model was tried first and did not follow the brief's structure
+# (DECISIONS). A brief that fails the verifier is replaced by the deterministic template; the
+# measured pass rate is in reports/brief_faithfulness.md.
 #
 # In a company (docs/HANDOFF.md §2), keep the same code and change `model` / `api_base`:
 #   self-hosted on GPU:   {model: "openai/<served-name>", api_base: "https://llm.internal/v1",
@@ -15,14 +18,14 @@
 gateway: litellm
 tasks:
   brief_writer:
-    model: "openai/qwen2.5-1.5b-instruct"
+    model: "openai/qwen2.5-7b-instruct"
     api_base: "http://127.0.0.1:8080/v1"
     max_tokens: 1000
     temperature: 0          # greedy decoding: the same facts give the same brief (cacheable)
     timeout_s: 300          # CPU generation; a GPU endpoint answers in seconds
     num_retries: 1
   fact_extractor:
-    model: "openai/qwen2.5-1.5b-instruct"
+    model: "openai/qwen2.5-7b-instruct"
     api_base: "http://127.0.0.1:8080/v1"
     max_tokens: 800
     temperature: 0
@@ -37,7 +40,7 @@ alternatives:
 # USD per million tokens for the cost estimate in traces (provider list prices, 2026-10).
 # Self-hosted models have no per-token price: their cost is the server's.
 prices_per_mtok:
-  "openai/qwen2.5-1.5b-instruct": {input: 0, output: 0}
+  "openai/qwen2.5-7b-instruct": {input: 0, output: 0}
   "anthropic/claude-sonnet-5-5": {input: 2.00, output: 10.00}
   "anthropic/claude-haiku-5-5":  {input: 0.10, output: 0.50}
 embeddings:

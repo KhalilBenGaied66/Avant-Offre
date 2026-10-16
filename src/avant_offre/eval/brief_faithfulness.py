@@ -13,6 +13,8 @@ briefs from the template are not counted as LLM results.
 from __future__ import annotations
 
 import random
+import re
+from collections import Counter
 from datetime import date
 from typing import Any
 
@@ -73,54 +75,62 @@ def run(
         return {"report": str(path), "not_run": reason}
 
     prof = engine.profile(siret=key)
+    dev = set(s.eval.brief_dev_notices)
     rows: list[tuple[Any, ...]] = []
+    reasons_rows: list[tuple[Any, ...]] = []
     samples: list[tuple[str, Any, Any]] = []
     per_model: dict[str, dict[str, Any]] = {}
     for model in usable:
-        stats: dict[str, list[float]] = {
-            "clean": [],
-            "removed": [],
-            "fallback": [],
-            "latency": [],
-            "cost": [],
-        }
+        records: list[dict[str, Any]] = []
         for nid in sample:
             b, facts = engine.brief(nid, prof, persist=False, model=model)
-            llm_failed = b.fallback and (b.fallback_reason or "").startswith("llm_unavailable")
-            if llm_failed:
+            if b.fallback and (b.fallback_reason or "").startswith("llm_unavailable"):
                 continue
-            stats["clean"].append(float(not b.fallback and not b.removed))
-            stats["removed"].append(float(len(b.removed)))
-            stats["fallback"].append(float(b.fallback))
-            stats["latency"].append(b.latency_ms or 0.0)
-            stats["cost"].append(b.cost_usd or 0.0)
+            records.append(
+                {
+                    "notice": nid,
+                    "clean": float(not b.fallback and not b.removed),
+                    "removed": float(len(b.removed)),
+                    "fallback": float(b.fallback),
+                    "latency": b.latency_ms or 0.0,
+                    "cost": b.cost_usd or 0.0,
+                    "reason": _reason(b.fallback_reason),
+                }
+            )
             if model == usable[0] and len(samples) < s.eval.brief_review_samples:
                 samples.append((nid, b, facts))
-        n = len(stats["clean"])
-        per_model[model] = {k: float(np.mean(v)) if v else None for k, v in stats.items()}
-        rows.append(
-            (
-                f"`{model}`",
-                n,
-                f"{100 * np.mean(stats['clean']):.0f} %" if n else "—",
-                f"{np.mean(stats['removed']):.2f}" if n else "—",
-                f"{100 * np.mean(stats['fallback']):.0f} %" if n else "—",
-                f"{np.median(stats['latency']):.0f}" if n else "—",
-                f"{np.mean(stats['cost']):.4f}" if n else "—",
-            )
-        )
+        held_out = [r for r in records if r["notice"] not in dev]
+        per_model[model] = {
+            "all": _aggregate(records),
+            "held_out": _aggregate(held_out),
+            "notices": records,
+        }
+        rows.append(_row(model, "all", records))
+        if dev and len(held_out) < len(records):
+            rows.append(_row(model, "held out", held_out))
+        counts = Counter(r["reason"] for r in records if r["fallback"])
+        reasons_rows += [(f"`{model}`", reason, n) for reason, n in counts.most_common()]
     body = [
         "## Setup",
         "",
         f"- {len(sample)} open tenders sampled with seed {s.seed}; reference company "
         f"`{key}` (most awards in the store).",
         f"- Verifier: max {s.brief.max_removed} removed sentences, {s.brief.max_words} words.",
+        *(
+            [
+                f"- {len(dev & set(sample))} of these notices were used to choose the model and "
+                "the prompt (`eval.brief_dev_notices`): the *held out* rows leave them out."
+            ]
+            if dev & set(sample)
+            else []
+        ),
         "",
         "## Results",
         "",
         common.md_table(
             [
                 "Model",
+                "notices",
                 "briefs",
                 "pass without removal",
                 "removed / brief",
@@ -131,6 +141,11 @@ def run(
             rows,
         ),
         "",
+        "A brief that falls back is replaced by the deterministic template: the reader never sees "
+        "an unverified number. Fallback reasons:",
+        "",
+        common.md_table(["Model", "reason", "briefs"], reasons_rows) if reasons_rows else "_none_",
+        "",
         "Full briefs for manual review: `reports/brief_samples.md`.",
         "",
     ]
@@ -139,6 +154,38 @@ def run(
     common.write_json("brief_faithfulness.json", {"models": per_model, "n": len(sample)})
     common.record_run(conn, "brief_faithfulness", timer, path, per_model)
     return {"report": str(path), "models": per_model}
+
+
+def _reason(reason: str | None) -> str | None:
+    """'verifier: 5 sentences removed > 2' -> 'verifier: N sentences removed > 2'."""
+    return re.sub(r"^verifier: \d+ ", "verifier: N ", reason) if reason else None
+
+
+def _aggregate(records: list[dict[str, Any]]) -> dict[str, float | None]:
+    keys = ("clean", "removed", "fallback", "latency", "cost")
+    out: dict[str, float | None] = {
+        k: float(np.mean([r[k] for r in records])) if records else None for k in keys
+    }
+    out["n"] = float(len(records))
+    return out
+
+
+def _row(model: str, label: str, records: list[dict[str, Any]]) -> tuple[Any, ...]:
+    n = len(records)
+
+    def mean(k: str) -> float:
+        return float(np.mean([r[k] for r in records]))
+
+    return (
+        f"`{model}`",
+        label,
+        n,
+        f"{100 * mean('clean'):.0f} %" if n else "—",
+        f"{mean('removed'):.2f}" if n else "—",
+        f"{100 * mean('fallback'):.0f} %" if n else "—",
+        f"{np.median([r['latency'] for r in records]):.0f}" if n else "—",
+        f"{mean('cost'):.4f}" if n else "—",
+    )
 
 
 def _write_samples(samples: list[tuple[str, Any, Any]]) -> None:

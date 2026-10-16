@@ -65,7 +65,7 @@ mcp:
 mcp-http:
 	$(CLI) mcp --transport http
 
-llm-local:        ## free local LLM endpoint on :8080 (llama.cpp + Qwen2.5-1.5B, first run builds)
+llm-local:        ## free local LLM endpoint on :8080 (llama.cpp + Qwen2.5-7B, first run builds)
 	scripts/llm_local.sh
 
 web-install:
