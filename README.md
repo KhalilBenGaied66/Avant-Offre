@@ -12,9 +12,9 @@ et les rapports d'évaluation sont faits pour être relus.
 > **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte). Les données
 > réelles sont ingérées sur le périmètre échantillon (DECP du 15/10/2026, avis BOAMP ouverts du
 > 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`. Les backtests sans modèle
-> ont tourné (appariement CPV / BM25, embeddings, concurrents, prix : voir « Résultats
-> mesurés »). Restent à mesurer : l'hybride et le reranker, et la fidélité des notes LLM (clé
-> d'API requise). Aucun chiffre n'a été estimé à la place d'un run.
+> ont tourné (appariement CPV / BM25 / embeddings / hybride / reranker, concurrents, prix : voir
+> « Résultats mesurés »). Reste à mesurer la fidélité des notes LLM (clé d'API requise). Aucun
+> chiffre n'a été estimé à la place d'un run.
 
 ## Le besoin
 
@@ -39,7 +39,7 @@ flowchart LR
     BOAMP[BOAMP<br/>avis ouverts, eForms] --> I
     SIRENE[SIRENE<br/>catégorie juridique] --> I
   end
-  I[Ingestion + qualité<br/>DuckDB, Parquet] --> S[Recherche<br/>BM25 · denses · RRF]
+  I[Ingestion + qualité<br/>DuckDB, Parquet] --> S[Recherche<br/>BM25]
   I --> F[Filtres d'éligibilité<br/>SQL + motifs]
   S --> M[Intelligence de marché<br/>SQL : concurrents, prix, ouverture]
   F --> G[Grille go / no-go<br/>règles du bureau des offres]
@@ -82,15 +82,16 @@ F-006), dont les volumes et les taux sont générés par `make quality`.
 
 Règle générale (`docs/DECISIONS.md`) : l'IA sert à comprendre le texte libre et à rédiger pour un
 lecteur humain ; tout ce qui doit être exact, auditable ou appartient au métier reste
-déterministe. Sur 13 étapes, 3 utilisent l'IA comme outil principal, 2 en repli, et la décision
-reste humaine.
+déterministe. Sur 13 étapes, 2 utilisent l'IA comme outil principal, 2 en repli, et la décision
+reste humaine. L'appariement par embeddings a été construit et mesuré, puis écarté : il ne bat
+pas BM25.
 
 | Étape | Approche | Pourquoi |
 | --- | --- | --- |
 | Collecte, dédoublonnage, filtres d'éligibilité | Sans IA | Données structurées ; exclusions exactes et motivées |
 | Liaison titulaires ↔ entreprises | IA en repli | SIRET, puis SIREN / TVA, puis nom approché ; embeddings seulement pour le reste, signalés |
 | Extraction des faits de l'avis | IA en repli | Champs eForms d'abord ; le LLM ne lit que du texte, jamais un montant ou une date, avec citation vérifiée mot pour mot |
-| Appariement avis ↔ profil | IA | Les acheteurs décrivent le même besoin avec d'autres mots ; BM25 reste le défaut tant que l'hybride ne le bat pas sur le backtest |
+| Appariement avis ↔ profil | Sans IA (IA testée, écartée) | Embeddings, hybride et reranker mesurés sur le backtest : aucun ne bat BM25, qui est livré seul |
 | Intelligence de marché, grille go / no-go | Sans IA | Agrégations SQL traçables ; grille éditée par le bureau des offres |
 | Note d'une page | IA | Le LLM ne reçoit que des faits calculés ; chaque chiffre est vérifié, sinon modèle déterministe |
 | Questions ponctuelles | IA (modèle du client) | Agent MCP qui appelle les mêmes outils SQL, jamais sa mémoire |
@@ -119,9 +120,20 @@ réellement gagnés en 2025 retrouvés dans les 20 premiers avis proposés (Reca
 | Alerte CPV classée par fréquence des codes gagnés (référence la plus forte sans IA) | 0,139 |
 | BM25, profil moyen de l'entreprise | **0,270** |
 
-Écart BM25 − meilleure alerte CPV, apparié par entreprise : **+0,131 [0,097 ; 0,167]** ; BM25 est
-devant dans chaque division CPV. BM25 est donc la méthode livrée. Les embeddings et l'hybride ne
-seront livrés que s'ils battent BM25 avec un intervalle au-dessus de 0 (`docs/DECISIONS.md`).
+Écart BM25 − meilleure alerte CPV, apparié par entreprise : **+0,131 [0,097 ; 0,167]**.
+
+**Embeddings, hybride, reranker** (`reports/matching.md`, mêmes entreprises de test) : l'IA ne
+bat pas BM25 ici, elle n'est donc pas livrée.
+
+| Méthode | Recall@20 |
+| --- | --- |
+| BM25, profil moyen (livré) | **0,270** |
+| Hybride BM25 + embeddings `multilingual-e5-small` (RRF) | 0,258 |
+| Embeddings seuls | 0,209 |
+| Hybride + reranker `bge-reranker-v2-m3` (100 entreprises, ≈ 23 s par entreprise sur CPU) | 0,237 |
+
+Écart hybride − BM25 : −0,012 [−0,034 ; 0,009] ; reranker − hybride : −0,016 [−0,064 ; 0,034].
+La règle fixée avant les données (`docs/DECISIONS.md`, étape 6) s'applique : BM25 reste seul.
 
 **Concurrents probables** (`reports/competitors.md`, 5 497 couples attribution–titulaire) : le
 vrai titulaire figure parmi les 10 concurrents prédits dans 20 % des cas, 44 % quand il a déjà
@@ -145,9 +157,8 @@ seuls, les trois modèles testés font moins bien que BM25 sur les mêmes entrep
 | `bge-m3` | 0,209 | 98,1 |
 | Référence : BM25, profil moyen | 0,281 | — |
 
-Les embeddings ne seront utilisés que si l'hybride BM25 + embeddings bat BM25 seul, avec un
-intervalle de confiance au-dessus de 0. Pas encore mesurés : hybride et reranker
-(`reports/matching.md`), fidélité des notes LLM (`reports/brief_faithfulness.md`).
+Pas encore mesurée : la fidélité des notes LLM (`reports/brief_faithfulness.md`, clé d'API
+requise).
 
 ## Limites
 

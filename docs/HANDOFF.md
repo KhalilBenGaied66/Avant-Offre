@@ -125,10 +125,12 @@ option, pas une dépendance.
 
 ## 7. Ce qui manque avant un pilote
 
-1. Mesurer ce qui manque : embeddings, hybride et reranker (`make setup-full`, accès à
-   Hugging Face), fidélité des notes LLM (clé d'API). Les backtests sans modèle (appariement
-   BM25 / CPV, concurrents, prix) ont tourné sur les données réelles (`reports/SUMMARY.md`).
-2. Selon `reports/matching.md`, garder BM25 ou passer à l'hybride (une entrée datée dans
-   `docs/DECISIONS.md`).
+1. Mesurer la fidélité des notes LLM (clé d'API). Tous les autres backtests ont tourné sur les
+   données réelles (`reports/SUMMARY.md`) ; l'appariement reste BM25 seul, l'hybride et le
+   reranker n'ayant pas fait mieux (`reports/matching.md`, entrée datée dans
+   `docs/DECISIONS.md`). Le runtime des modèles (`make setup-full`) n'est donc pas requis en
+   production.
+2. Refaire le backtest d'appariement si le texte complet des avis devient l'entrée (aujourd'hui,
+   l'objet du marché attribué).
 3. Relire les 10 notes de `reports/brief_samples.md` et marquer le fichier comme relu.
 4. Valider la grille avec le bureau des offres ; lancer le pilote avec le recueil des retours.

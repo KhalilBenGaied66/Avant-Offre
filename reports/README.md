@@ -10,7 +10,7 @@ git commit, config hash, data snapshot date and seed.
 | `check_sources.md` | `make check-sources` | generated (data hosts reachable but intermittent; Hugging Face blocked) |
 | `entity_resolution_sample.csv` | `make data-sample` | generated on real data (sole traders pseudonymized, their SIREN removed) |
 | `matching_baselines.md` / `.json` | `avant-offre eval matching-baselines` | generated on real data |
-| `matching.md` / `.json` | `avant-offre eval matching` | not generated yet (needs the model runtime and Hugging Face) |
+| `matching.md` / `.json` | `avant-offre eval matching` | generated on real data (reranker on a 100-company test sample) |
 | `embed_bench.md` / `.json` | `avant-offre eval embed` | generated on real data |
 | `competitors.md` / `.json`, `competitors_calibration.png` | `avant-offre eval competitors` | generated on real data |
 | `prices.md` / `.json` | `avant-offre eval prices` | generated on real data |

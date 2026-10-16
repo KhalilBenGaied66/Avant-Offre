@@ -70,6 +70,29 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-16 — Real data: step 6 applied — BM25 ships, no hybrid, no reranker
+Context: full matching backtest on real awards (`reports/matching.md`, 382 test companies, t0 =
+2025-01-01): CPV alerts, BM25, dense (`multilingual-e5-small`), their RRF hybrid, and the hybrid
+reranked by `bge-reranker-v2-m3`. The cross-encoder costs ~23 s per company on a 4-core CPU, so
+it was evaluated on a seeded sample of 100 test companies, paired with the hybrid on the same
+companies.
+Decision: the rule is applied as written. The hybrid does not beat BM25 (Recall@20 difference
+−0.012 [−0.034, 0.009]), so `search.retrievers` stays `[bm25]`; the reranker shows no gain over
+the hybrid (−0.016 [−0.064, 0.034], n = 100) for +22 s per company, so `search.rerank` stays
+false. No embedding model runs in the product; `make setup-full` stays optional.
+Alternatives considered: ship the hybrid for its small MRR and Recall@50 gains (0.274 vs 0.251,
+0.402 vs 0.390, intervals overlapping; the rule is set on Recall@20 before seeing the data, and
+changing the metric after the fact would be choosing on the test split); a division-specific
+hybrid for IT, where dense alone scores 0.171 vs 0.073 for BM25 (18 companies, intervals
+overlapping: not evidence).
+Evidence: `reports/matching.md` — test Recall@20 BM25 0.270 [0.238, 0.302], hybrid 0.258
+[0.227, 0.292], dense 0.209 [0.180, 0.239], reranked hybrid 0.237 [0.181, 0.298] (n = 100);
+SMEs: BM25 0.321, hybrid 0.300. Dense timings in this harness include reading vectors from the
+local store and are not a production latency estimate.
+Revisit if: notice texts (longer and richer than award titles) become the matching input, IT
+gets a larger sample (the one division where dense led), or a GPU makes the reranker cheap
+enough to test on every company.
+
 ### 2026-10-16 — Real data: multilingual-e5-small stays the embedding model; dense alone trails BM25
 Context: SPEC §7.5 benchmark on the tuning split of the real matching backtest (101 companies),
 three candidates, CPU timings on 1,000 award titles.
