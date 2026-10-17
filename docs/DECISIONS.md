@@ -70,6 +70,40 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-17 — The free local brief writer is kept behind the verifier; facts fixed, not the prompt
+Context: `reports/brief_faithfulness.md`, 50 seeded open tenders, Qwen2.5-7B-Instruct (Q4_K_M,
+llama.cpp, 4-core CPU) with the five-section prompt. The model was chosen on 3 notices:
+Qwen2.5-1.5B passed 1 of 3 with the first prompt and 0 of 3 with the skeleton (repetition
+loops), the 7B 0 of 3 and 3 of 3. No pass bar was set before the first full run. That run
+(4063b9d, reproduced notice by notice at 7267071) sent 36 % of briefs to the template, all for
+more than 2 removed sentences: 56 removals for a number matching no cited fact, 47 for an
+uncited number. The 10 review samples showed why: score thresholds the facts did not hold
+(« sous le seuil de 0,5 requis »), counts restated as percentages (« 95 % » for a count of 95),
+correct numbers cited to the wrong fact; and a data bug outside the model (F-007).
+Decision: keep the free local 7B as the default writer, behind the verifier and the template.
+Fix what the model reached for, not the prompt: the band cut-offs are citable facts, count
+labels start with « Nombre de », hard-stop reasons are French. The 10 notices read join
+`eval.brief_dev_notices`, so the held-out rows exclude every brief that was read.
+Alternatives considered: template only (faithful by construction; the prose's value cannot be
+measured without readers, and the template still serves every brief that fails); accepting an
+uncited number when it equals a fact (breaks the one-citation-per-number link the review page
+relies on); repairing citations automatically (the verifier removes, it never rewrites,
+SPEC §6.9); a second model pass on failing briefs (about 90 s more per failure on CPU, not
+measured); a larger or managed model (not free; a config change, compared through
+`alternatives`).
+Evidence: same 50 tenders, before → after: template fallback 36 % → 28 % (28 % on the 40
+held-out notices), briefs with no removal 4 % → 8 %, removals for a number matching no cited
+fact 56 → 12 (in 78 % → 20 % of briefs), removals for an uncited number 47 → 92.
+Median 91 s per brief, no cost. Not checked by the verifier: meaning. A passing brief can still
+overstate (« excellente correspondance » for a tender ranked above 73 % of the week's) or drop a
+qualifier (a median over comparables read as this tender's count of bids). The interface says
+the numbers are verified, not the wording; the 10 samples await the author's review.
+Tests: `tests/test_brief.py::test_band_cutoffs_are_citable_facts`,
+`::test_numbers_among_facts_separates_citation_errors_from_unsupported_numbers`.
+Revisit if: the author's review finds meaning errors in passing briefs (then the template by
+default), a company endpoint offers a stronger model (rerun with it in `alternatives`), or a
+pilot shows readers skip the prose (decision log row 9).
+
 ### 2026-10-16 — Dynamic purchasing systems leave price and bid statistics; IT prices shown again
 Context: a brief in the faithfulness samples (`reports/brief_samples.md` at 249be08, notice
 26-92807) stated comparable prices of 0 € and a median of 468 bids received. Both came from

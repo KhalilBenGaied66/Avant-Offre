@@ -13,8 +13,8 @@ et les rapports d'évaluation sont faits pour être relus.
 > réelles sont ingérées sur le périmètre échantillon (DECP du 15/10/2026, avis BOAMP ouverts du
 > 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`. Les backtests sans modèle
 > ont tourné (appariement CPV / BM25 / embeddings / hybride / reranker, concurrents, prix : voir
-> « Résultats mesurés »). Reste à mesurer la fidélité des notes LLM (clé d'API requise). Aucun
-> chiffre n'a été estimé à la place d'un run.
+> « Résultats mesurés »), ainsi que la fidélité des notes rédigées par un modèle open-weights
+> gratuit servi localement. Aucun chiffre n'a été estimé à la place d'un run.
 
 ## Le besoin
 
@@ -159,8 +159,15 @@ seuls, les trois modèles testés font moins bien que BM25 sur les mêmes entrep
 | `bge-m3` | 0,209 | 98,1 |
 | Référence : BM25, profil moyen | 0,281 | — |
 
-Pas encore mesurée : la fidélité des notes LLM (`reports/brief_faithfulness.md`, clé d'API
-requise).
+**Notes d'une page** (`reports/brief_faithfulness.md`, 50 avis ouverts, Qwen2.5-7B-Instruct
+servi localement sur CPU, gratuit) : 72 % des notes sont livrées rédigées par le modèle, après
+retrait des phrases non vérifiées ; 28 % basculent sur la note déterministe (28 % aussi sur les
+40 avis jamais relus pendant la mise au point). Aucun chiffre non vérifié n'atteint le lecteur.
+L'analyse des phrases retirées a fait baisser les chiffres absents des faits cités de 56 à 12
+phrases : il manquait au modèle les seuils de la grille, désormais fournis comme faits.
+Le vérificateur contrôle les chiffres et les citations, pas le sens :
+les 10 notes de `reports/brief_samples.md` restent à relire. Environ 90 s par note sur CPU,
+d'où le calcul en lot hebdomadaire et le cache.
 
 ## Limites
 

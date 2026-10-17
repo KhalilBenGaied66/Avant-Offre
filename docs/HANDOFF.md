@@ -156,11 +156,13 @@ une option, pas une dépendance, et l'option par défaut est gratuite (modèle o
 
 ## 7. Ce qui manque avant un pilote
 
-1. Mesurer la fidélité des notes LLM (clé d'API). Tous les autres backtests ont tourné sur les
-   données réelles (`reports/SUMMARY.md`) ; l'appariement reste BM25 seul, l'hybride et le
-   reranker n'ayant pas fait mieux (`reports/matching.md`, entrée datée dans
-   `docs/DECISIONS.md`). Le runtime des modèles (`make setup-full`) n'est donc pas requis en
-   production.
+1. Tous les backtests ont tourné sur les données réelles (`reports/SUMMARY.md`) ; l'appariement
+   reste BM25 seul, l'hybride et le reranker n'ayant pas fait mieux (`reports/matching.md`,
+   entrée datée dans `docs/DECISIONS.md`), donc le runtime des modèles (`make setup-full`) n'est
+   pas requis en production. Les notes sont mesurées avec le modèle local gratuit (28 % basculent
+   sur la note déterministe, `reports/brief_faithfulness.md`) ; si l'entreprise dispose d'un
+   modèle plus fort (GPU interne, API gérée), le déclarer dans `alternatives` de
+   `config/models.yaml` et relancer `avant-offre eval briefs` pour comparer sur les mêmes avis.
 2. Refaire le backtest d'appariement si le texte complet des avis devient l'entrée (aujourd'hui,
    l'objet du marché attribué).
 3. Relire les 10 notes de `reports/brief_samples.md` et marquer le fichier comme relu.
