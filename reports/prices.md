@@ -1,6 +1,6 @@
 # Price range backtest
 
-_Generated 2026-10-16T23:24:07+00:00 · mode `sample` · git `70fd4175c0-dirty` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-17T10:12:57+00:00 · mode `sample` · git `b95dfae82f` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 ## Setup
 
