@@ -45,8 +45,8 @@ bureau des offres (`config/scorecard.yaml`).
 Cliquer « Générer la note ». Cliquer une citation [F12] : la ligne du fait s'allume.
 Message : le LLM ne reçoit que les faits ; un vérificateur sans IA contrôle chaque nombre (formats
 français, k€, M€) et chaque citation ; une phrase fausse est retirée, et si la recommandation est
-touchée, on bascule sur un modèle déterministe. Montrer le taux de passage dans
-`reports/brief_faithfulness.md` s'il a tourné.
+touchée, on bascule sur un modèle déterministe. Montrer le taux de bascule et les phrases
+retirées dans `reports/brief_faithfulness.md`.
 
 **2:20 – 2:45 · Une question ponctuelle**
 Dans Claude Desktop : « Qui remporte d'habitude des marchés comparables à cet avis, et le marché
