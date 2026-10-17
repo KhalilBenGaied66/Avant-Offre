@@ -1,6 +1,6 @@
 # Avant-Offre — evaluation summary
 
-_Generated 2026-10-16T14:59:14+00:00 · mode `sample` · git `e9ff9e1dcc` · config `b5e3d8c78320` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-17T11:49:06+00:00 · mode `sample` · git `2abd225130` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 ## Matching — hybrid vs CPV alerts
 
@@ -32,7 +32,7 @@ Details and calibration: `reports/competitors.md`.
 
 | n | coverage [P25, P75] | coverage [P10, P90] | median |log error| |
 | --- | --- | --- | --- |
-| 3430 | 48.3 % | 75.1 % | 0.840 |
+| 3347 | 49.5 % | 76.9 % | 0.815 |
 
 Per CPV division: `reports/prices.md`.
 
@@ -50,7 +50,12 @@ Recommended by the selection rule: `intfloat/multilingual-e5-small` (`reports/em
 
 ## Brief faithfulness
 
-_Not run: no LLM available (missing API key or `--extra llm`)._
+| Model | notices | briefs | pass without removal | removed / brief | fallback |
+| --- | --- | --- | --- | --- | --- |
+| `openai/qwen2.5-7b-instruct` | all | 50 | 8 % | 1.94 | 26 % |
+| `openai/qwen2.5-7b-instruct` | held out | 40 | 5 % | 1.93 | 25 % |
+
+A brief that falls back is the deterministic template; *held out* leaves out the notices read to tune the brief (`reports/brief_faithfulness.md`).
 
 ## Caveats
 

@@ -1,6 +1,6 @@
 # Brief samples for manual review
 
-_Generated 2026-10-17T00:53:35+00:00 · mode `sample` · git `eae2dc82f3` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
+_Generated 2026-10-17T11:46:04+00:00 · mode `sample` · git `973998cec1` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
 **Status: not yet reviewed.** The author edits this line after reading each brief.
 
@@ -304,19 +304,18 @@ NO-GO.
 
 ## Pourquoi
 - Le score de la grille est insuffisant, se situant à 0,62 [F7].
-- De plus, les critères non évalués, à savoir l'adéquation au profil et le risque sortant, ne sont pas favorables [F9].
+- De plus, les critères non évalués, à savoir l'adéquation au profil et le risque sortant, n'ont pas été pris en compte [F9].
 
 ## Concurrence
 - Les concurrents probables sont TRANSPORTS MARTY GERARD, COLAS RAIL et RENOFER, tous nouveaux chez cet acheteur [F14, F15, F16].
 - L'ouverture du marché est prévue, mais la date exacte n'est pas mentionnée [F11].
 
 ## Prix
-- La fourchette de prix des comparables est de 63 000 € à 782 000 €, avec une médiane de 180 000 € [F21, F22, F23].
-- Le montant estimé indiqué dans l'avis est de 1 340 000 € [F5].
+- La fourchette de prix des comparables est de 63 000 € à 782 000 €, avec un 1er quartile de 63 000 € et une médiane de 180 000 € [F21, F22, F23].
 
 ## Points à vérifier
-- La date limite de réponse est le 30/10/2026 [F3], ce qui est proche de la date d'arrêt de 15 jours avant la date limite [F11].
-- Les critères non évalués, l'adéquation au profil et le risque sortant, doivent être vérifiés [F10].
+- La date limite de réponse est le 30/10/2026 [F3], ce qui est en dessous de la date limite dans moins de 15 jours [F11].
+- De plus, les critères non évalués, l'adéquation au profil et le risque sortant, n'ont pas été vérifiés [F9, F10].
 
 
 Removed by the verifier:
