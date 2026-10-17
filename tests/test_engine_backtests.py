@@ -190,6 +190,9 @@ def test_brief_eval_breaks_removed_sentences_down_by_reason(
         == {"number without citation": 1, "cites a fact id that does not exist": 1}
         for r in stats["notices"]
     )
+    # "999 jours" is no fact; "Trois rivaux [F99]" has no number.
+    assert all(r["removed_not_in_facts"] == 1 for r in stats["notices"])
+    assert "with a number in no fact" in text
     samples = (Path(out["report"]).parent / "brief_samples.md").read_text(encoding="utf-8")
     assert "Removed by the verifier" in samples and "Il reste 999 jours." in samples
 
