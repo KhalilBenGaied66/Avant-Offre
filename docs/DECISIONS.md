@@ -1,8 +1,9 @@
 # Avant-Offre — AI / no-AI decision log
 
 Avant-Offre helps a corporate bid office decide which French public tenders are worth
-answering. Of its 13 steps, 3 use AI as the main tool, 2 use it only as a fallback, and
-the go/no-go decision stays with people.
+answering. Of its 13 steps, 3 were designed with AI as the main tool and 2 with AI only as a
+fallback; the backtests decided what ships. Matching runs on BM25 and the brief on a template:
+the models were built, measured, and kept as options. The go/no-go decision stays with people.
 
 ## Decision rules
 AI is used only to understand meaning in free text or to write for a human reader;
@@ -25,10 +26,10 @@ anything that must be exact, auditable or owned by the business stays determinis
 | 3 | Link award winners to companies (SIRET) | AI fallback | Exact ID join first, then fuzzy name matching. Embeddings only for what remains, and weak links are flagged. | Unlinked winners are numerous enough to bias the backtest. |
 | 4 | Extract tender facts: lots, deadline, award criteria, certifications | AI fallback | Structured eForms fields first (BOAMP uses eForms since January 2024). An LLM reads only facts stated in free text, checked against a schema, with the source quote kept. | Structured fields cover nearly every case; then the LLM is removed. |
 | 5 | Exclude ineligible tenders: deadline, region, amount, procedure | No AI | Bid managers need exact, explainable exclusions. "Probably eligible" is not acceptable. | The bid team adds a criterion found only in prose: extract it in step 4, still filter in SQL. |
-| 6 | Match tenders to the company's profile | AI | Buyers describe the same work in different words, and CPV codes are often broad or wrong. Hybrid search (BM25 plus embeddings), then a reranker. | Hybrid fails to beat CPV alerts and BM25 on Recall@20 by a clear margin: ship BM25. The reranker stays only if its gain is worth its latency. |
+| 6 | Match tenders to the company's profile | AI tested, not shipped (BM25 ships, 2026-10-16) | Buyers describe the same work in different words, and CPV codes are often broad or wrong. Hybrid search (BM25 plus embeddings), then a reranker. | Hybrid fails to beat CPV alerts and BM25 on Recall@20 by a clear margin: ship BM25. The reranker stays only if its gain is worth its latency. |
 | 7 | Market intelligence: likely competitors, newcomer share, price range, SME win share, bids received | No AI | Pure aggregation over DECP, exact and traceable to its rows. Competitors come from similar contracts with any buyer (step 6's search), recent wins weighted more. Newcomers are not named; the brief shows how often first-time winners take comparable contracts. | Never for the numbers. If first-time winners dominate the backtest, lead the brief with the newcomer share instead of names. |
 | 8 | Go/no-go score | No AI | A weighted scorecard the bid team configures, explainable in committee. A model trained on wins would learn from biased labels, since losses are not recorded. | The team has logged enough decisions and outcomes to test a learned model against the scorecard. |
-| 9 | Write the one-page brief | AI | Turns the computed facts and cited contracts into readable prose for the committee. Its only input is those facts. | Readers skip the prose and use only the table: replace the LLM with a template. |
+| 9 | Write the one-page brief | Template; AI opt-in (2026-10-17) | Turns the computed facts and cited contracts into readable prose for the committee. Its only input is those facts. | Readers skip the prose and use only the table: replace the LLM with a template. |
 | 10 | Verify the brief | No AI | Every number in the text is matched against the SQL output. A failing sentence is removed, not rewritten. | Never: this is the safety net. |
 | 11 | Answer ad-hoc questions ("who usually wins with this buyer?") | AI | An agent calls the same SQL and search tools through an MCP server, from Claude or Copilot Studio. It never answers from memory. | The same questions keep coming back: turn them into fixed reports. |
 | 12 | Deliver the weekly digest | Low-code | A Power Automate flow posts it to Teams and Outlook. IT already governs these tools, so there is no custom code to maintain. | Delivery logic grows beyond formatting and routing. |
@@ -70,7 +71,32 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-17 — The template is the default brief; the local model is opt-in
+Context: the review of the 10 samples in `reports/brief_samples.md` (run at 973998c): Claude Code
+read each sentence against the brief's fact table, and the author accepted its findings. In 6 of
+the 7 briefs the model wrote, at least one sentence says what the facts contradict or do not
+support, with numbers that are correct and cited, so the verifier passed them. « Aucun prix
+exploitable n'a été trouvé parmi les 63 contrats comparables », where 63 counts the comparables
+*with* a usable price; « le contrat le plus proche a été passé il y a moins d'un mois » for a
+contract of 26/11/2025; criteria not assessed read as failed; a NO-GO set by the deadline hard
+stop explained by the score; a score compared with a price range.
+Decision: `brief.writer: template`. The deterministic brief is the default everywhere a brief is
+written (API, review page, MCP tool, digest, weekly batch); `brief.writer: llm` turns the model
+on. The evaluation names its models, so it keeps measuring them. This is the revisit condition
+of the entry below.
+Alternatives considered: keep the model and check meaning with another model (an entailment
+model or an LLM judge: a new AI step with its own error rate, guarding prose no reader has asked
+for); more prompt work on the 7B (these are reasoning errors, not format errors); a stronger
+managed model (not free, and it would have to pass the same review).
+Evidence: `reports/brief_samples.md` (status line), `reports/brief_faithfulness.md`;
+`tests/test_brief.py::test_default_writer_is_the_template_and_never_calls_the_model`,
+`::test_a_named_model_is_called_even_with_the_template_default`.
+Revisit if: a model, local or a company endpoint, writes samples that pass the same review: add
+it to `alternatives`, run `avant-offre eval briefs`, read the samples.
+
 ### 2026-10-17 — The free local brief writer is kept behind the verifier; facts fixed, not the prompt
+_Superseded the same day by "The template is the default brief" (above): the review of the
+samples found meaning errors the verifier cannot see._
 Context: `reports/brief_faithfulness.md`, 50 seeded open tenders, Qwen2.5-7B-Instruct (Q4_K_M,
 llama.cpp, 4-core CPU) with the five-section prompt. The model was chosen on 3 notices:
 Qwen2.5-1.5B passed 1 of 3 with the first prompt and 0 of 3 with the skeleton (repetition

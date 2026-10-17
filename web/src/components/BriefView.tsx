@@ -26,6 +26,7 @@ function withCitations(text: string, onCite: (id: string) => void): ReactNode[] 
 }
 
 const FALLBACK_LABELS: Record<string, string> = {
+  template: "choix par défaut",
   llm_unavailable: "modèle de langage non configuré",
   llm_stop: "réponse du modèle interrompue",
   verifier: "chiffres non conformes aux faits",

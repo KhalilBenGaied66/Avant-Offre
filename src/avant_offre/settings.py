@@ -185,6 +185,9 @@ class EvalConfig(BaseModel):
 
 
 class BriefConfig(BaseModel):
+    # Who writes the brief when no model is named: the deterministic template, or the LLM of
+    # config/models.yaml (opt-in). The evaluation names its models, so it measures them anyway.
+    writer: Literal["template", "llm"] = "template"
     max_words: int = 250
     max_removed: int = 2
 
