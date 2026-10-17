@@ -1,0 +1,138 @@
+# Avant-Offre settings. Loaded once by avant_offre.settings.
+# Environment overrides: AVANT_OFFRE_<FIELD>, nested with "__" (e.g. AVANT_OFFRE_EVAL__T0=2024-07-01).
+# AVANT_OFFRE_MODE=sample|full selects the data scope (SPEC §4.7).
+
+mode: sample
+seed: 20261015
+
+paths:
+  data_dir: data
+  reports_dir: reports
+
+http:
+  timeout_s: 60
+  retries: 5
+  user_agent: "avant-offre/0.1 (portfolio project; read-only open-data client)"
+
+sources:
+  decp:
+    dataset_page: "https://www.data.gouv.fr/datasets/donnees-essentielles-de-la-commande-publique-consolidees-format-tabulaire"
+    parquet_url: "https://www.data.gouv.fr/api/1/datasets/r/11cea8e8-df3e-4ed1-932b-781e2635e432"
+    schema_url: "https://www.data.gouv.fr/api/1/datasets/r/9a4144c0-ee44-4dec-bee5-bbef38191d9a"
+    licence: "Licence Ouverte 2.0"
+  boamp:
+    dataset_page: "https://www.data.gouv.fr/datasets/boamp"
+    api_base: "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp"
+    licence: "Licence Ouverte 2.0"
+    lookback_days: 21          # live mode: notices published in the last N days
+    # Field names are UNVERIFIED (host blocked at M0, DATA_QUALITY F-002). Ingest checks them
+    # against the first records and stops with the observed field list on a mismatch.
+    fields:
+      notice_id: idweb
+      objet: objet
+      buyer_name: nomacheteur
+      published_on: dateparution
+      deadline_on: datelimitereponse
+      dept: code_departement
+      procedure: procedure_libelle
+      nature: nature_libelle
+      market_type: type_marche
+      url: url_avis
+      donnees: donnees
+    required_fields: [notice_id, objet, published_on, deadline_on, donnees]
+  sirene:
+    api_search_url: "https://recherche-entreprises.api.gouv.fr/search"
+    api_max_requests_per_s: 6  # the API documents 7 req/s; stay below it
+    api_max_lookups: 20000     # safety cap per run in sample mode
+    stock_dataset_page: "https://www.data.gouv.fr/datasets/base-sirene-des-entreprises-et-de-leurs-etablissements-siren-siret"
+    stock_unite_legale_url: null   # set after verifying the current resource URL (full mode)
+    licence: "Licence Ouverte 2.0"
+  cpv:
+    # Official CPV 2008 list (EU Publications Office). Optional: hierarchy is derived from codes.
+    labels_url: null
+  ted:
+    api_base: "https://api.ted.europa.eu/v3"
+    enabled: false
+  huggingface:
+    probe_url: "https://huggingface.co/api/models/intfloat/multilingual-e5-small"
+  anthropic:
+    probe_url: "https://api.anthropic.com/v1/models"
+
+sample:
+  date_from: "2023-01-01"
+  date_to: "2025-12-31"
+  departments: ["75", "92", "93", "94", "69", "13", "33", "31", "59", "44"]
+  cpv_divisions: ["72", "79", "45", "90"]
+
+dedup:
+  title_similarity: 92        # rapidfuzz token_set_ratio, 0–100
+
+entity_resolution:
+  fuzzy_threshold: 90         # rapidfuzz WRatio on normalized names, 0–100
+  embedding_threshold: 0.92   # cosine; residue only, always flagged
+  sample_csv_rows: 200
+
+search:
+  cpv_group_digits: 3         # CPV alert baseline granularity (SPEC §7.2)
+  rrf_k: 60
+  rerank_top_n: 50
+  profile_max_wins: 50        # most recent past wins kept in a profile
+  profile_strategy: mean      # max | mean (mean = centroid); tuning split chose mean (reports/matching_baselines.md)
+  retrievers: [bm25]          # bm25 | dense; hybrid (RRF) when several — set from reports/matching.md
+  rerank: false
+  bm25:
+    k1: 1.5
+    b: 0.75
+
+# Step-5 eligibility. Deadline, maximum amount and departments are the bid team's hard stops
+# and live in config/scorecard.yaml (one source of truth); the rules below complete them.
+filters:
+  min_amount_eur: null
+  procedures: null            # null = every procedure
+  excluded_cpv_divisions: []
+
+intel:
+  k_comparables: 100
+  tau_days: 730               # recency decay of competitor evidence
+  same_buyer_boost: 0.5
+  left_censor_months: 12      # newcomer share ignores the first N months of the data window
+  top_competitors: 10
+  references_similarity: 0.5  # normalized similarity above which a past win counts as a reference
+  min_price_n: 5              # fewer usable comparables => price range not assessed
+  # Price bands not shown for these CPV divisions: those whose coverage intervals in
+  # reports/prices.md both exclude their targets (DECISIONS). IT (72) was listed until dynamic
+  # purchasing systems were excluded from prices; it now meets both targets.
+  price_unreliable_divisions: []
+  display_comparables: 20     # comparables listed in the tender view
+
+eval:
+  t0: "2025-01-01"
+  t1: "2026-01-01"
+  tuning_share: 0.20
+  n_companies: 500
+  min_wins_before_t0: 5
+  min_wins_in_test: 1
+  sme_only: false             # the report shows SMEs and all sizes either way
+  bootstrap_resamples: 1000
+  ks: [10, 20, 50]
+  ndcg_k: 20
+  embed_tolerance: 0.01     # embed bench: fastest model within this Recall@20 of the best
+  brief_sample_size: 50
+  brief_review_samples: 10
+  # Notices whose briefs were read to change the brief (DECISIONS, 2026-10-16): the first 3 chose
+  # the local model and the prompt skeleton; the next 7 are the other review samples of the first
+  # runs, read to find why sentences failed. The report shows results with and without them.
+  brief_dev_notices: ["26-100028", "26-100270", "26-100330", "26-100454", "26-92139", "26-92282",
+                      "26-92446", "26-92521", "26-92640", "26-92807"]
+  max_test_awards: 5000       # competitor / price backtests: seeded sample of test awards
+  rerank_max_companies: 100   # reranker: seeded sample of test companies (CPU ~23 s / company)
+
+brief:
+  max_words: 250
+  max_removed: 2
+
+api:
+  key_header: "X-API-Key"     # value from the AVANT_OFFRE_API_KEY environment variable
+  cors_origins: ["http://localhost:5173"]
+  public_base_url: "http://localhost:5173"
+  digest_top: 10

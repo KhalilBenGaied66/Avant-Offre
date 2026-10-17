@@ -1,0 +1,58 @@
+# Model ids are configuration, not code (SPEC §8.1). The application only needs an endpoint that
+# speaks the OpenAI-compatible chat API or a provider LiteLLM knows; switching is a config change.
+#
+# Default: a free, private open-weights model on a local llama.cpp server
+# (`make llm-local`, scripts/llm_local.sh): Qwen2.5-7B-Instruct, Apache-2.0, multilingual,
+# 4-bit quantized (4.7 GB). On a 4-core CPU a brief takes about 1.5-2 minutes: fine for the
+# weekly batch (`avant-offre briefs`) and the cache, too slow for interactive use, which needs a
+# GPU endpoint. The 1.5B model was tried first and did not follow the brief's structure
+# (DECISIONS). A brief that fails the verifier is replaced by the deterministic template; the
+# measured pass rate is in reports/brief_faithfulness.md.
+#
+# In a company (docs/HANDOFF.md §2), keep the same code and change `model` / `api_base`:
+#   self-hosted on GPU:   {model: "openai/<served-name>", api_base: "https://llm.internal/v1",
+#                          api_key_env: "LLM_API_KEY"}            # vLLM, TGI, a LiteLLM proxy
+#   managed, own tenant:  {model: "azure/<deployment>"} · {model: "bedrock/<model-id>"}
+#   managed, provider:    {model: "anthropic/claude-sonnet-5-5", max_tokens: 4000}
+# `AVANT_OFFRE_LLM_API_BASE` overrides `api_base` at deployment without editing this file.
+gateway: litellm
+tasks:
+  brief_writer:
+    model: "openai/qwen2.5-7b-instruct"
+    api_base: "http://127.0.0.1:8080/v1"
+    max_tokens: 1000
+    temperature: 0          # greedy decoding: the same facts give the same brief (cacheable)
+    timeout_s: 300          # CPU generation; a GPU endpoint answers in seconds
+    num_retries: 1
+  fact_extractor:
+    model: "openai/qwen2.5-7b-instruct"
+    api_base: "http://127.0.0.1:8080/v1"
+    max_tokens: 800
+    temperature: 0
+    timeout_s: 300
+    num_retries: 1
+# Compared with the writer by the brief evaluation, each only when reachable (key set).
+# Sonnet 5.5 rejects non-default temperature (HTTP 400) and runs adaptive thinking, whose tokens
+# count against max_tokens: hence no temperature and the headroom over a 250-word brief.
+alternatives:
+  - {model: "anthropic/claude-sonnet-5-5", max_tokens: 4000}
+  - {model: "mistral/mistral-large-latest", max_tokens: 1500, temperature: 0}
+# USD per million tokens for the cost estimate in traces (provider list prices, 2026-10).
+# Self-hosted models have no per-token price: their cost is the server's.
+prices_per_mtok:
+  "openai/qwen2.5-7b-instruct": {input: 0, output: 0}
+  "anthropic/claude-sonnet-5-5": {input: 2.00, output: 10.00}
+  "anthropic/claude-haiku-5-5":  {input: 0.10, output: 0.50}
+embeddings:
+  default: "intfloat/multilingual-e5-small"   # kept by the 7.5 benchmark (reports/embed_bench.md)
+  candidates:
+    - "intfloat/multilingual-e5-small"
+    - "intfloat/multilingual-e5-base"
+    - "BAAI/bge-m3"
+  prefixes:   # query/passage prefixes required by each model family
+    "intfloat/multilingual-e5-small": {query: "query: ", passage: "passage: "}
+    "intfloat/multilingual-e5-base":  {query: "query: ", passage: "passage: "}
+    "BAAI/bge-m3":                    {query: "", passage: ""}
+  batch_size: 64
+reranker: "BAAI/bge-reranker-v2-m3"
+llm_extraction_enabled: true   # disabled by config if eForms coverage makes it useless (SPEC §6.4)
