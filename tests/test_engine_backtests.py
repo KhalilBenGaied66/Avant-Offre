@@ -197,6 +197,15 @@ def test_brief_eval_breaks_removed_sentences_down_by_reason(
     assert "Removed by the verifier" in samples and "Il reste 999 jours." in samples
 
 
+def test_brief_eval_is_dated_by_the_snapshot_not_the_clock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(brief_faithfulness, "snapshot_date", lambda: "2026-10-16")
+    assert brief_faithfulness.as_of_date() == date(2026, 10, 16)
+    monkeypatch.setattr(brief_faithfulness, "snapshot_date", lambda: "none")
+    assert brief_faithfulness.as_of_date() == date.today()
+
+
 def test_summary_lists_unrun_backtests(store: duckdb.DuckDBPyConnection) -> None:
     text = report.run().read_text(encoding="utf-8")
     assert "Not run" in text or "not run" in text

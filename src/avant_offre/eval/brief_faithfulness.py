@@ -24,6 +24,7 @@ import numpy as np
 from avant_offre.brief import verifier
 from avant_offre.eval import common
 from avant_offre.llm import gateway
+from avant_offre.runinfo import snapshot_date
 from avant_offre.service import Engine
 from avant_offre.settings import get_models, get_settings
 
@@ -46,7 +47,8 @@ def run(
     models = [cfg.tasks["brief_writer"].model, *(a.model for a in cfg.alternatives)]
     reasons = {m: gateway.unavailable_reason("brief_writer", m) for m in models}
     usable = [m for m in models if reasons[m] is None]
-    engine = Engine(conn, today or date.today())
+    as_of = today or as_of_date()
+    engine = Engine(conn, as_of)
     key = company_key or reference_company(conn)
     tenders = (
         [
@@ -141,7 +143,7 @@ def run(
         "## Setup",
         "",
         f"- {len(sample)} open tenders sampled with seed {s.seed}; reference company "
-        f"`{key}` (most awards in the store).",
+        f"`{key}` (most awards in the store); briefs written as of {as_of}.",
         f"- Verifier: max {s.brief.max_removed} removed sentences, {s.brief.max_words} words.",
         *(
             [
@@ -203,6 +205,13 @@ def run(
     common.write_json("brief_faithfulness.json", {"models": per_model, "n": len(sample)})
     common.record_run(conn, "brief_faithfulness", timer, path, per_model)
     return {"report": str(path), "models": per_model}
+
+
+def as_of_date() -> date:
+    """The data snapshot's date: a rerun on the same snapshot sees the same days to deadline and
+    hard stops, whatever the clock says. Today only when no snapshot is recorded."""
+    snap = snapshot_date()
+    return date.fromisoformat(snap) if snap != "none" else date.today()
 
 
 def _reason(reason: str | None) -> str | None:
