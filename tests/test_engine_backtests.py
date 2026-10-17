@@ -206,6 +206,31 @@ def test_brief_eval_is_dated_by_the_snapshot_not_the_clock(
     assert brief_faithfulness.as_of_date() == date.today()
 
 
+def test_summary_reads_the_brief_report(
+    store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The summary must read the JSON the brief evaluation writes (it once crashed on it)."""
+    writer_model = gateway.get_models().tasks["brief_writer"].model
+    monkeypatch.setattr(
+        gateway,
+        "unavailable_reason",
+        lambda task, model=None: None if model == writer_model else "no key",
+    )
+    monkeypatch.setattr(
+        gateway,
+        "complete",
+        lambda task, messages, model=None: gateway.LLMResult(
+            "## Recommandation\nGO.", writer_model, 50, 5, 1.0, 0.0, "stop", "h"
+        ),
+    )
+    monkeypatch.setenv("AVANT_OFFRE_EVAL__BRIEF_DEV_NOTICES", '["T1"]')
+    reset_caches()
+    brief_faithfulness.run(store, today=TODAY)
+    text = report.run().read_text(encoding="utf-8")
+    section = text.split("## Brief faithfulness")[1].split("## ")[0]
+    assert "held out" in section and "100 %" in section
+
+
 def test_summary_lists_unrun_backtests(store: duckdb.DuckDBPyConnection) -> None:
     text = report.run().read_text(encoding="utf-8")
     assert "Not run" in text or "not run" in text
