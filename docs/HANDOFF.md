@@ -159,7 +159,7 @@ une option, pas une dépendance, et l'option par défaut est gratuite (modèle o
 1. Tous les backtests ont tourné sur les données réelles (`reports/SUMMARY.md`) ; l'appariement
    reste BM25 seul, l'hybride et le reranker n'ayant pas fait mieux (`reports/matching.md`,
    entrée datée dans `docs/DECISIONS.md`), donc le runtime des modèles (`make setup-full`) n'est
-   pas requis en production. Les notes sont mesurées avec le modèle local gratuit (28 % basculent
+   pas requis en production. Les notes sont mesurées avec le modèle local gratuit (26 % basculent
    sur la note déterministe, `reports/brief_faithfulness.md`) ; si l'entreprise dispose d'un
    modèle plus fort (GPU interne, API gérée), le déclarer dans `alternatives` de
    `config/models.yaml` et relancer `avant-offre eval briefs` pour comparer sur les mêmes avis.

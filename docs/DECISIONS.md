@@ -91,10 +91,14 @@ relies on); repairing citations automatically (the verifier removes, it never re
 SPEC §6.9); a second model pass on failing briefs (about 90 s more per failure on CPU, not
 measured); a larger or managed model (not free; a config change, compared through
 `alternatives`).
-Evidence: same 50 tenders, before → after: template fallback 36 % → 28 % (28 % on the 40
-held-out notices), briefs with no removal 4 % → 8 %, removals for a number matching no cited
-fact 56 → 12 (in 78 % → 20 % of briefs), removals for an uncited number 47 → 92.
-Median 91 s per brief, no cost. Not checked by the verifier: meaning. A passing brief can still
+Evidence: same 50 tenders, before → after the change, in two runs of the same prompts: template
+fallback 36 % → 28 % and 26 % (28 % and 25 % on the 40 held-out notices), briefs with no
+removal 4 % → 8 %, removals for a number matching no cited fact 56 → 12 and 14, removals for
+an uncited number 47 → 92 and 83. In the latest run, 1 of the 97 removed sentences holds a
+number that no fact of its brief holds: the rest are citation errors, not invented numbers.
+The two runs had identical prompts (trace hashes) and still 8 of 50 different outputs: the
+local server is not bit-reproducible across sessions even at temperature 0, so a difference of
+a brief or two is noise. Median 91 to 102 s per brief, no cost. Not checked by the verifier: meaning. A passing brief can still
 overstate (« excellente correspondance » for a tender ranked above 73 % of the week's) or drop a
 qualifier (a median over comparables read as this tender's count of bids). The interface says
 the numbers are verified, not the wording; the 10 samples await the author's review.

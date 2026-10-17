@@ -160,14 +160,14 @@ seuls, les trois modèles testés font moins bien que BM25 sur les mêmes entrep
 | Référence : BM25, profil moyen | 0,281 | — |
 
 **Notes d'une page** (`reports/brief_faithfulness.md`, 50 avis ouverts, Qwen2.5-7B-Instruct
-servi localement sur CPU, gratuit) : 72 % des notes sont livrées rédigées par le modèle, après
-retrait des phrases non vérifiées ; 28 % basculent sur la note déterministe (28 % aussi sur les
-40 avis jamais relus pendant la mise au point). Aucun chiffre non vérifié n'atteint le lecteur.
-L'analyse des phrases retirées a fait baisser les chiffres absents des faits cités de 56 à 12
-phrases : il manquait au modèle les seuils de la grille, désormais fournis comme faits.
-Le vérificateur contrôle les chiffres et les citations, pas le sens :
-les 10 notes de `reports/brief_samples.md` restent à relire. Environ 90 s par note sur CPU,
-d'où le calcul en lot hebdomadaire et le cache.
+servi localement sur CPU, gratuit) : 74 % des notes sont livrées rédigées par le modèle, après
+retrait des phrases non vérifiées ; 26 % basculent sur la note déterministe, contre 36 % sur les
+mêmes avis avant l'analyse d'erreurs (25 % sur les 40 avis jamais relus pendant la mise au
+point). Aucun chiffre non vérifié n'atteint le lecteur. Il manquait au modèle les seuils de la
+grille, désormais fournis comme faits ; sur 97 phrases retirées, une seule contient un chiffre
+absent des faits : les autres sont des citations manquantes ou erronées. Le vérificateur
+contrôle les chiffres et les citations, pas le sens : les 10 notes de `reports/brief_samples.md`
+restent à relire. Environ 100 s par note sur CPU, d'où le calcul en lot hebdomadaire et le cache.
 
 ## Limites
 
