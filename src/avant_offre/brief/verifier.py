@@ -218,6 +218,12 @@ def check_sentence(sentence: str, facts: dict[str, Fact]) -> str | None:
     return None
 
 
+def numbers_among_facts(sentence: str, facts: BriefFacts) -> bool:
+    """Every number of the sentence equals some fact, citations ignored. For a removed sentence,
+    True means a citation error (missing or wrong), False a number the facts do not hold."""
+    return all(any(number_matches(n, f) for f in facts.facts) for n in parse_numbers(sentence))
+
+
 def verify(text: str, facts: BriefFacts, *, max_removed: int, max_words: int) -> Verification:
     by_id = facts.by_id()
     sections = split_sections(text)

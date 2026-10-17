@@ -156,6 +156,14 @@ def test_band_cutoffs_are_citable_facts() -> None:
     assert i["band_go"] in template.render(facts)
 
 
+def test_numbers_among_facts_separates_citation_errors_from_unsupported_numbers() -> None:
+    facts = full_facts()
+    score = facts.by_id()[ids(facts)["score"]].display
+    assert verifier.numbers_among_facts(f"Le score est de {score}.", facts)  # uncited, but a fact
+    assert not verifier.numbers_among_facts("Le score est de 0,99.", facts)
+    assert verifier.numbers_among_facts("Aucun chiffre ici.", facts)
+
+
 def test_failing_sentence_is_removed_not_rewritten() -> None:
     facts = full_facts()
     text = template.render(facts).replace("61 %", "64 %")

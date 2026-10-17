@@ -80,6 +80,7 @@ def run(
     rows: list[tuple[Any, ...]] = []
     reasons_rows: list[tuple[Any, ...]] = []
     removed_rows: list[tuple[Any, ...]] = []
+    origin_rows: list[tuple[Any, ...]] = []
     samples: list[tuple[str, Any, Any]] = []
     per_model: dict[str, dict[str, Any]] = {}
     for model in usable:
@@ -99,6 +100,9 @@ def run(
                     "reason": _reason(b.fallback_reason),
                     "removed_kinds": dict(
                         Counter(verifier.reason_kind(r.reason) for r in b.removed)
+                    ),
+                    "removed_not_in_facts": sum(
+                        not verifier.numbers_among_facts(r.sentence, facts) for r in b.removed
                     ),
                 }
             )
@@ -124,6 +128,15 @@ def run(
             (f"`{model}`", kind, n, f"{100 * briefs_with[kind] / len(records):.0f} %")
             for kind, n in kinds.most_common()
         ]
+        with_invented = sum(r["removed_not_in_facts"] > 0 for r in records)
+        origin_rows.append(
+            (
+                f"`{model}`",
+                sum(int(r["removed"]) for r in records),
+                sum(r["removed_not_in_facts"] for r in records),
+                f"{100 * with_invented / len(records):.0f} %",
+            )
+        )
     body = [
         "## Setup",
         "",
@@ -165,6 +178,21 @@ def run(
         "",
         common.md_table(["Model", "reason", "sentences", "briefs with at least one"], removed_rows)
         if removed_rows
+        else "_none_",
+        "",
+        "Removed sentences holding a number that no fact of the brief holds, citations ignored "
+        "(the other removals are citation errors, or sentences without a number):",
+        "",
+        common.md_table(
+            [
+                "Model",
+                "removed sentences",
+                "with a number in no fact",
+                "briefs with such a sentence",
+            ],
+            origin_rows,
+        )
+        if origin_rows
         else "_none_",
         "",
         "Full briefs for manual review: `reports/brief_samples.md`.",
