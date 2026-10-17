@@ -127,17 +127,31 @@ def run() -> Path:
     if briefs and "models" in briefs:
         body += [
             common.md_table(
-                ["Model", "pass without removal", "removed / brief", "fallback rate"],
+                [
+                    "Model",
+                    "notices",
+                    "briefs",
+                    "pass without removal",
+                    "removed / brief",
+                    "fallback",
+                ],
                 [
                     (
                         f"`{m}`",
-                        f"{100 * (v['clean'] or 0):.0f} %",
-                        f"{v['removed'] or 0:.2f}",
-                        f"{100 * (v['fallback'] or 0):.0f} %",
+                        label,
+                        int(v[part]["n"] or 0),
+                        f"{100 * (v[part]['clean'] or 0):.0f} %",
+                        f"{v[part]['removed'] or 0:.2f}",
+                        f"{100 * (v[part]['fallback'] or 0):.0f} %",
                     )
                     for m, v in briefs["models"].items()
+                    for part, label in (("all", "all"), ("held_out", "held out"))
+                    if v[part]["n"]
                 ],
             ),
+            "",
+            "A brief that falls back is the deterministic template; *held out* leaves out the "
+            "notices read to tune the brief (`reports/brief_faithfulness.md`).",
             "",
         ]
     else:
