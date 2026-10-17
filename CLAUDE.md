@@ -42,8 +42,8 @@ Always read `docs/SPEC.md` and `docs/DECISIONS.md` before starting a task.
 - `make serve` FastAPI on :8000 · `make mcp` MCP server (stdio; `make mcp-http` for HTTP) ·
   `make web-install web` React review page on :5173 · `uv run avant-offre digest --siret <s>`
 - `make llm-local` free local LLM endpoint on :8080 (llama.cpp, open-weights model; first run
-  builds and downloads) · `uv run avant-offre briefs --siret <s>` weekly batch: cache the
-  week's briefs
+  builds and downloads); the brief writer uses it only with `brief.writer: llm` (default:
+  template) · `uv run avant-offre briefs --siret <s>` weekly batch of the week's briefs
 - `uv run avant-offre demo-export --siret <s> --out demo/` · `demo-load demo/` pseudonymized snapshot
 
 ## Conventions

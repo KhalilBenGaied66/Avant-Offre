@@ -71,6 +71,7 @@ def test_brief_without_llm_is_the_verified_template(store: duckdb.DuckDBPyConnec
     assert app.execute("SELECT count(*) FROM briefs WHERE fallback").fetchone() == (1,)
 
 
+@pytest.mark.usefixtures("llm_writer")
 def test_brief_cache_reuses_model_briefs_only(
     store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
 ) -> None:

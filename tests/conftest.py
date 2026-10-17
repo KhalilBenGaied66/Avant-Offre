@@ -35,6 +35,13 @@ def isolated_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterat
 
 
 @pytest.fixture
+def llm_writer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Opt in to the LLM brief writer (the default is the deterministic template)."""
+    monkeypatch.setenv("AVANT_OFFRE_BRIEF__WRITER", "llm")
+    st.reset_caches()
+
+
+@pytest.fixture
 def decp_parquet(tmp_path: Path) -> Path:
     return write_decp_fixture(tmp_path / "decp.parquet")
 

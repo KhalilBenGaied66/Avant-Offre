@@ -89,8 +89,10 @@ la facture Azure du pilote.
 | Stockage | quelques Go (Parquet, DuckDB, versions) | négligeable |
 | Power Automate | flux A : licence Premium ; flux B : connecteurs standard | selon le contrat Microsoft 365 du client |
 
-Sans aucun LLM joignable, le système fonctionne entièrement (notes déterministes) : le LLM est
-une option, pas une dépendance, et l'option par défaut est gratuite (modèle open-weights local).
+La note livrée par défaut est déterministe (`brief.writer: template`) : le système fonctionne
+entièrement sans LLM. Le LLM est une option (`brief.writer: llm`), gratuite si elle tourne sur le
+modèle open-weights local ; elle n'est pas activée, la relecture des exemples ayant trouvé des
+erreurs de sens (`docs/DECISIONS.md`, 2026-10-17).
 
 ## 4. Supervision
 
@@ -159,11 +161,13 @@ une option, pas une dépendance, et l'option par défaut est gratuite (modèle o
 1. Tous les backtests ont tourné sur les données réelles (`reports/SUMMARY.md`) ; l'appariement
    reste BM25 seul, l'hybride et le reranker n'ayant pas fait mieux (`reports/matching.md`,
    entrée datée dans `docs/DECISIONS.md`), donc le runtime des modèles (`make setup-full`) n'est
-   pas requis en production. Les notes sont mesurées avec le modèle local gratuit (26 % basculent
-   sur la note déterministe, `reports/brief_faithfulness.md`) ; si l'entreprise dispose d'un
-   modèle plus fort (GPU interne, API gérée), le déclarer dans `alternatives` de
-   `config/models.yaml` et relancer `avant-offre eval briefs` pour comparer sur les mêmes avis.
+   pas requis en production. Les notes du modèle local gratuit ont été mesurées puis relues :
+   chiffres vérifiés, mais erreurs de sens dans 6 des 7 exemples, d'où la note déterministe par
+   défaut. Si l'entreprise dispose d'un modèle plus fort (GPU interne, API gérée), le déclarer
+   dans `alternatives` de `config/models.yaml`, relancer `avant-offre eval briefs` et relire les
+   exemples avant d'activer `brief.writer: llm`.
 2. Refaire le backtest d'appariement si le texte complet des avis devient l'entrée (aujourd'hui,
    l'objet du marché attribué).
-3. Relire les 10 notes de `reports/brief_samples.md` et marquer le fichier comme relu.
+3. Faire relire quelques notes déterministes par un responsable d'offres : la seule validation
+   à ce jour porte sur les résultats d'attribution publics.
 4. Valider la grille avec le bureau des offres ; lancer le pilote avec le recueil des retours.

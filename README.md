@@ -14,7 +14,8 @@ et les rapports d'évaluation sont faits pour être relus.
 > 16/10/2026, API SIRENE) et décrites dans `docs/DATA_QUALITY.md`. Les backtests sans modèle
 > ont tourné (appariement CPV / BM25 / embeddings / hybride / reranker, concurrents, prix : voir
 > « Résultats mesurés »), ainsi que la fidélité des notes rédigées par un modèle open-weights
-> gratuit servi localement. Aucun chiffre n'a été estimé à la place d'un run.
+> gratuit servi localement ; après relecture, la note livrée par défaut reste déterministe.
+> Aucun chiffre n'a été estimé à la place d'un run.
 
 ## Le besoin
 
@@ -44,7 +45,7 @@ flowchart LR
   S --> M[Intelligence de marché<br/>SQL : concurrents, prix, ouverture]
   F --> G[Grille go / no-go<br/>règles du bureau des offres]
   M --> G
-  G --> N[Note d'une page<br/>LLM contraint + vérificateur]
+  G --> N[Note d'une page<br/>modèle déterministe ; LLM vérifié en option]
   N --> API[API · MCP · page de revue · digest Teams]
   API --> C{{Comité : décision humaine}}
 ```
@@ -93,7 +94,7 @@ pas BM25.
 | Extraction des faits de l'avis | IA en repli | Champs eForms d'abord ; le LLM ne lit que du texte, jamais un montant ou une date, avec citation vérifiée mot pour mot |
 | Appariement avis ↔ profil | Sans IA (IA testée, écartée) | Embeddings, hybride et reranker mesurés sur le backtest : aucun ne bat BM25, qui est livré seul |
 | Intelligence de marché, grille go / no-go | Sans IA | Agrégations SQL traçables ; grille éditée par le bureau des offres |
-| Note d'une page | IA | Le LLM ne reçoit que des faits calculés ; chaque chiffre est vérifié, sinon modèle déterministe. Par défaut, modèle open-weights gratuit servi localement ; API gérée ou GPU interne par simple configuration |
+| Note d'une page | Sans IA par défaut (IA mesurée, en option) | Modèle déterministe à partir des faits calculés. Le LLM (open-weights gratuit en local, ou API gérée / GPU interne par configuration) passe le vérificateur de chiffres, mais la relecture des exemples a trouvé des erreurs de sens : il reste une option (`brief.writer: llm`) |
 | Questions ponctuelles | IA (modèle du client) | Agent MCP qui appelle les mêmes outils SQL, jamais sa mémoire |
 | Diffusion hebdomadaire | Low-code | Flux Power Automate déjà gouverné par l'IT |
 | Décision | Humain | Le comité porte la décision et son risque |
@@ -166,8 +167,11 @@ mêmes avis avant l'analyse d'erreurs (25 % sur les 40 avis jamais relus pendant
 point). Aucun chiffre non vérifié n'atteint le lecteur. Il manquait au modèle les seuils de la
 grille, désormais fournis comme faits ; sur 97 phrases retirées, une seule contient un chiffre
 absent des faits : les autres sont des citations manquantes ou erronées. Le vérificateur
-contrôle les chiffres et les citations, pas le sens : les 10 notes de `reports/brief_samples.md`
-restent à relire. Environ 100 s par note sur CPU, d'où le calcul en lot hebdomadaire et le cache.
+contrôle les chiffres et les citations, pas le sens, et la relecture des 10 exemples
+(`reports/brief_samples.md`) a trouvé, dans 6 des 7 notes rédigées par le modèle, au moins une
+phrase que les faits contredisent ou ne soutiennent pas (« aucun prix exploitable » quand 63
+comparables en ont un). **La note livrée par défaut est donc le modèle déterministe** ; le LLM
+reste une option mesurée (`brief.writer: llm`), à réévaluer avec un modèle plus fort.
 
 ## Limites
 
@@ -204,8 +208,9 @@ make data-sample quality        # DECP + SIRENE + BOAMP (périmètre réduit), d
 make index-sample               # index BM25 des marchés attribués
 make eval-sample                # tous les backtests -> reports/
 make setup-full                 # + embeddings et reranker (torch, sentence-transformers)
-make llm-local                  # LLM gratuit et local sur :8080 (llama.cpp, Qwen2.5-7B, 4,7 Go)
-uv run avant-offre briefs --siret <SIRET>         # notes de la semaine, en lot, mises en cache
+uv run avant-offre briefs --siret <SIRET>         # notes de la semaine, en lot
+make llm-local                  # optionnel : LLM gratuit et local sur :8080 (llama.cpp, Qwen2.5-7B)
+uv run avant-offre eval briefs  # le mesurer ; AVANT_OFFRE_BRIEF__WRITER=llm pour l'activer
 
 make serve                      # API FastAPI sur :8000 (documentation OpenAPI sur /docs)
 make web-install web            # page de revue sur :5173
