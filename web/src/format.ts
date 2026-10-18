@@ -7,12 +7,13 @@ export const fmtInt = (v: number | null | undefined) => (v == null ? "—" : int
 export const fmtPct = (v: number | null | undefined) => (v == null ? "—" : `${int.format(v)} %`);
 export const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("fr-FR") : "—";
-// Whole days between today (local midnight) and a date: same arithmetic as the server.
-export const daysUntil = (iso: string | null | undefined) => {
+// Whole days from the server's reference day (`as_of`: today, or a demo snapshot's date) to a
+// date: same arithmetic as the server.
+export const daysUntil = (iso: string | null | undefined, asOf?: string | null) => {
   if (!iso) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.round((new Date(`${iso}T00:00:00`).getTime() - today.getTime()) / 86_400_000);
+  const from = asOf ? new Date(`${asOf}T00:00:00`) : new Date();
+  from.setHours(0, 0, 0, 0);
+  return Math.round((new Date(`${iso}T00:00:00`).getTime() - from.getTime()) / 86_400_000);
 };
 
 export const dayBefore = (iso: string) => {

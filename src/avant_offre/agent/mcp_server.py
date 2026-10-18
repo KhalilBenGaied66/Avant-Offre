@@ -65,7 +65,7 @@ def _dump(obj: Any) -> str:
 
 def create_server(
     connect: Callable[[], duckdb.DuckDBPyConnection] | None = None,
-    today: Callable[[], date] = date.today,
+    today: Callable[[], date] | None = None,
 ) -> MCPServer:
     """Build the server; ``connect`` returns the analytic store connection (tests inject one)."""
     server = MCPServer("avant-offre", instructions=INSTRUCTIONS)
@@ -77,7 +77,7 @@ def create_server(
         with lock:
             if "conn" not in state:
                 state["conn"] = connect() if connect else db.connect(read_only=True)
-            eng = Engine(state["conn"], today())
+            eng = Engine(state["conn"], today() if today else db.as_of(state["conn"]))
             eng._index, eng._competitors = state.get("index"), state.get("competitors")
             try:
                 yield eng

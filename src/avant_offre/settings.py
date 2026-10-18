@@ -140,6 +140,9 @@ class SearchConfig(BaseModel):
     retrievers: list[Retriever] = Field(default_factory=lambda: list[Retriever](["bm25"]))
     rerank: bool = False
     bm25: Bm25Config = Field(default_factory=Bm25Config)
+    # Tenders of the week scored in the shortlist, by fit rank. Ranking is cheap, scoring is not
+    # (market statistics per tender); the others are scored when opened.
+    shortlist_scored: int = 50
 
 
 class FiltersConfig(BaseModel):

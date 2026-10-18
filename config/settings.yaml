@@ -77,7 +77,8 @@ search:
   rrf_k: 60
   rerank_top_n: 50
   profile_max_wins: 50        # most recent past wins kept in a profile
-  profile_strategy: mean      # max | mean (mean = centroid); tuning split chose mean (reports/matching_baselines.md)
+  profile_strategy: mean
+  shortlist_scored: 50          # top of the week's ranking scored in the shortlist; others on open      # max | mean (mean = centroid); tuning split chose mean (reports/matching_baselines.md)
   retrievers: [bm25]          # bm25 | dense; hybrid (RRF) when several — set from reports/matching.md
   rerank: false
   bm25:

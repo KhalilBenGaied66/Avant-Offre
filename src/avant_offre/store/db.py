@@ -7,8 +7,9 @@ tables written by the application (briefs, feedback, eval_runs, …) are declare
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -103,6 +104,21 @@ def session(*, read_only: bool = False) -> Iterator[duckdb.DuckDBPyConnection]:
         conn.close()
 
 
+# A list of identifiers passed as one query parameter: `x IN (SELECT {IDS})` with `ids(values)`.
+# DuckDB (1.5) tries `import pandas` twice per element of a Python list parameter when pandas is
+# not installed, and Python does not cache a failed import: a list of 500 uids cost ~50 ms per
+# query instead of ~3 ms, and a weekly shortlist took minutes. Identifiers never hold chr(31).
+IDS = "unnest(string_split(?, chr(31)))"
+_SEP = "\x1f"
+
+
+def ids(values: Iterable[str]) -> str:
+    out = [str(v) for v in values]
+    if any(_SEP in v for v in out):
+        raise ValueError("an identifier contains the list separator chr(31)")
+    return _SEP.join(out)
+
+
 def fetch_dicts(
     conn: duckdb.DuckDBPyConnection, sql: str, params: Sequence[Any] | None = None
 ) -> list[dict[str, Any]]:
@@ -148,8 +164,18 @@ def set_meta(conn: duckdb.DuckDBPyConnection, name: str, value: object) -> None:
     )
 
 
+def as_of(conn: duckdb.DuckDBPyConnection) -> date:
+    """The date the store answers for: a demo snapshot's date (`demo-load` records it), so its
+    week and deadlines stay those of its data; otherwise today."""
+    value = get_meta(conn, "as_of")
+    return date.fromisoformat(value) if value else date.today()
+
+
 def get_meta(conn: duckdb.DuckDBPyConnection, name: str) -> str | None:
-    if not table_exists(conn, "pipeline_meta"):
+    # Read directly: a catalogue lookup first (information_schema) costs ~3 ms, and this runs
+    # for every tender of a shortlist.
+    try:
+        row = conn.execute("SELECT value FROM pipeline_meta WHERE name = ?", [name]).fetchone()
+    except duckdb.CatalogException:
         return None
-    row = conn.execute("SELECT value FROM pipeline_meta WHERE name = ?", [name]).fetchone()
     return None if row is None else row[0]

@@ -21,6 +21,7 @@ import duckdb
 import numpy as np
 
 from avant_offre.settings import get_models
+from avant_offre.store import db
 from avant_offre.store.vectors import VectorStore, to_day
 
 log = logging.getLogger(__name__)
@@ -111,10 +112,10 @@ def embed_awards(
     else:
         wanted = sorted(set(uids) - done)
         sql = (
-            "SELECT uid, objet, notified_on FROM awards "
-            "WHERE objet IS NOT NULL AND uid IN (SELECT unnest(?))"
+            "SELECT uid, objet, notified_on FROM awards "  # noqa: S608
+            f"WHERE objet IS NOT NULL AND uid IN (SELECT {db.IDS})"
         )
-        params = [wanted]
+        params = [db.ids(wanted)]
     rows = [r for r in conn.execute(sql + " ORDER BY uid", params).fetchall() if r[0] not in done]
     started = time.perf_counter()
     for i in range(0, len(rows), batch):

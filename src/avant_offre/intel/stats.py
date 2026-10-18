@@ -22,6 +22,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from avant_offre.intel.comparables import Comparable
+from avant_offre.store import db
 from avant_offre.store.db import get_meta
 
 
@@ -53,15 +54,15 @@ def newcomer_share(
 ) -> Stat:
     since = censor_start(conn, left_censor_months)
     rows = conn.execute(
-        """
+        f"""
         SELECT a.uid, bool_or(f.first_win_on = a.notified_on) AS newcomer
         FROM awards a
         JOIN award_winners w USING (uid)
         JOIN company_first_win f ON f.company_key = w.company_key
-        WHERE a.uid IN (SELECT unnest(?)) AND (? IS NULL OR a.notified_on >= ?)
+        WHERE a.uid IN (SELECT {db.IDS}) AND (? IS NULL OR a.notified_on >= ?)
         GROUP BY a.uid ORDER BY a.uid
-        """,
-        [list(uids), since, since],
+        """,  # noqa: S608
+        [db.ids(uids), since, since],
     ).fetchall()
     if not rows:
         return Stat(value=None, n=0, note="no comparable award after the censoring window")
@@ -76,13 +77,13 @@ def newcomer_share(
 
 def sme_share(conn: duckdb.DuckDBPyConnection, uids: Sequence[str]) -> Stat:
     rows = conn.execute(
-        """
+        f"""
         SELECT w.uid, bool_or(c.size_category = 'PME') AS sme
         FROM award_winners w JOIN companies c ON c.siren = w.company_key
-        WHERE w.uid IN (SELECT unnest(?)) AND c.size_category IS NOT NULL
+        WHERE w.uid IN (SELECT {db.IDS}) AND c.size_category IS NOT NULL
         GROUP BY w.uid ORDER BY w.uid
-        """,
-        [list(uids)],
+        """,  # noqa: S608
+        [db.ids(uids)],
     ).fetchall()
     if not rows:
         return Stat(value=None, n=0, note="size category unknown for every winner")
