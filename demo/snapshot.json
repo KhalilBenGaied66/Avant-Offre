@@ -1,0 +1,64 @@
+{
+ "created_at": "2026-10-18T16:27:05+00:00",
+ "as_of": "2026-10-16",
+ "git_commit": "eaaab8b791",
+ "companies": [
+  "352033914"
+ ],
+ "rows": {
+  "awards": 8991,
+  "award_winners": 9396,
+  "company_names": 3473,
+  "companies": 3360,
+  "company_first_win": 3473,
+  "tenders": 5115,
+  "tender_facts": 32010,
+  "pipeline_meta": 4
+ },
+ "sources": {
+  "decp": {
+   "name": "decp",
+   "source_url": "https://www.data.gouv.fr/api/1/datasets/r/11cea8e8-df3e-4ed1-932b-781e2635e432",
+   "final_url": "https://static.data.gouv.fr/resources/donnees-essentielles-de-la-commande-publique-consolidees-format-tabulaire/20261015-051643/decp.parquet",
+   "path": "/home/user/Avant-Offre/data/raw/decp/decp.parquet",
+   "downloaded_at": "2026-10-15T23:12:39+00:00",
+   "sha256": "2f50740d1ad017c776ded2ad2ee67eb7a1c9480c445c85faf9a39216856f253c",
+   "bytes": 248446891,
+   "licence": "Licence Ouverte 2.0",
+   "etag": "\"fd1e9a97db159d99def82f022d26164a-30\"",
+   "last_modified": "Thu, 15 Oct 2026 05:17:07 GMT",
+   "extra": {}
+  },
+  "boamp_open": {
+   "name": "boamp_open",
+   "source_url": "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/exports/jsonl",
+   "final_url": "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/exports/jsonl?where=dateparution+%3E%3D+date%272026-09-25%27+AND+datelimitereponse+%3E%3D+date%272026-10-16%27",
+   "path": "/home/user/Avant-Offre/data/raw/boamp/boamp_open_2026-10-16.jsonl",
+   "downloaded_at": "2026-10-16T00:39:22+00:00",
+   "sha256": "76c073a9c2b168abf4803ccf9c0cd719a2d74b7c2679418a475fb39626a6204f",
+   "bytes": 91927847,
+   "licence": "Licence Ouverte 2.0",
+   "etag": null,
+   "last_modified": null,
+   "extra": {
+    "where": "dateparution >= date'2026-09-25' AND datelimitereponse >= date'2026-10-16'"
+   }
+  },
+  "sirene_api": {
+   "name": "sirene_api",
+   "source_url": "https://recherche-entreprises.api.gouv.fr/search",
+   "final_url": "",
+   "path": "/home/user/Avant-Offre/data/cache/sirene_api.jsonl",
+   "downloaded_at": "2026-10-16T00:36:12+00:00",
+   "sha256": "",
+   "bytes": 0,
+   "licence": "Licence Ouverte 2.0",
+   "etag": null,
+   "last_modified": null,
+   "extra": {
+    "records": 18540
+   }
+  }
+ },
+ "personal_data": "winner names via company_names (sole traders and unknown statuses pseudonymized); their SIREN replaced by an opaque key; SIRET, legal category and creation dates removed"
+}
