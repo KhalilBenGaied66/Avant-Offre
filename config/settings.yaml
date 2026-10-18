@@ -105,6 +105,7 @@ intel:
   # purchasing systems were excluded from prices; it now meets both targets.
   price_unreliable_divisions: []
   display_comparables: 20     # comparables listed in the tender view
+  drop_buyer_terms: false     # tested 2026-10-18, not shipped: slightly worse (DECISIONS)
 
 eval:
   t0: "2025-01-01"

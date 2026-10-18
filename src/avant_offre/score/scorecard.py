@@ -76,7 +76,7 @@ Outcome = tuple[float | None, float | None, str | None]  # (raw input, value in 
 
 def _fit(p: dict[str, float], t: TenderInputs, intel: MarketIntel | None, today: date) -> Outcome:
     f = t.fit_percentile
-    return (f, f, None) if f is not None else (None, None, "no match score")
+    return (f, f, None) if f is not None else (None, None, "pas de score d'adéquation")
 
 
 def _deadline(
@@ -93,7 +93,7 @@ def _references(
 ) -> Outcome:
     refs = intel.company_references if intel else None
     if refs is None or refs.value is None:
-        return None, None, "no company profile"
+        return None, None, "pas de profil d'entreprise"
     return refs.value, min(1.0, refs.value / p.get("full_at", 3)), None
 
 
@@ -101,7 +101,11 @@ def _incumbent(
     p: dict[str, float], t: TenderInputs, intel: MarketIntel | None, today: date
 ) -> Outcome:
     if intel is None or intel.buyer_top_winner_share.value is None:
-        return None, None, intel.buyer_top_winner_share.note if intel else "no market data"
+        return (
+            None,
+            None,
+            intel.buyer_top_winner_share.note if intel else "pas de données de marché",
+        )
     share = intel.buyer_top_winner_share.value
     return share, 1.0 - share / 100.0, None
 
@@ -110,19 +114,19 @@ def _openness(
     p: dict[str, float], t: TenderInputs, intel: MarketIntel | None, today: date
 ) -> Outcome:
     if intel is None or intel.newcomer_share.value is None:
-        return None, None, intel.newcomer_share.note if intel else "no market data"
+        return None, None, intel.newcomer_share.note if intel else "pas de données de marché"
     return intel.newcomer_share.value, intel.newcomer_share.value / 100.0, None
 
 
 def _price(p: dict[str, float], t: TenderInputs, intel: MarketIntel | None, today: date) -> Outcome:
     v = t.estimated_value_eur
     if v is None or v <= 0:
-        return None, None, "no estimated value in the notice"
+        return None, None, "pas de montant estimé dans l'avis"
     pr = intel.price_range if intel else None
     if pr is not None and pr.note:
         return v, None, pr.note
     if pr is None or pr.p25 is None or pr.p75 is None:
-        return v, None, f"price range not assessed (n = {pr.n if pr else 0})"
+        return v, None, f"fourchette de prix non évaluée (n = {pr.n if pr else 0})"
     return v, price_realism(v, pr.p25, pr.p75, p.get("zero_at_factor", 4.0)), None
 
 

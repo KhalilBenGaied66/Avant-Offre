@@ -83,8 +83,10 @@ class Bm25Index:
     def __len__(self) -> int:
         return len(self.ids)
 
-    def scores(self, query: str | None) -> np.ndarray:
+    def scores(self, query: str | None, drop: frozenset[str] = frozenset()) -> np.ndarray:
+        """``drop``: query terms to ignore (kept if nothing else would remain)."""
         tokens = tokenize(query)
+        tokens = [t for t in tokens if t not in drop] or tokens
         if not tokens:
             return np.zeros(len(self.ids), dtype=np.float32)
         return np.asarray(self.retriever.get_scores(tokens), dtype=np.float32)

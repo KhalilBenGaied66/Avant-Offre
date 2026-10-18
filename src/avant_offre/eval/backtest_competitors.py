@@ -43,6 +43,7 @@ class TestAward:
     amount_anomaly: str | None
     cpv_division: str | None
     is_dynamic_system: bool = False
+    buyer_name: str | None = None
 
 
 def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> list[TestAward]:
@@ -53,7 +54,7 @@ def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> lis
                list(DISTINCT w.company_key ORDER BY w.company_key)
                    FILTER (WHERE w.link_method IN ('exact', 'siren')) AS winners,
                a.amount_eur, a.is_framework, a.amount_anomaly, a.cpv_division,
-               a.is_dynamic_system
+               a.is_dynamic_system, a.buyer_name
         FROM awards a JOIN award_winners w USING (uid)
         WHERE a.notified_on >= ? AND a.notified_on < ? AND a.objet IS NOT NULL
         GROUP BY ALL ORDER BY a.uid
@@ -62,7 +63,17 @@ def load_test_awards(conn: duckdb.DuckDBPyConnection, t0: date, t1: date) -> lis
     ).fetchall()
     awards = [
         TestAward(
-            r[0], r[1], r[2], r[3], tuple(r[4] or ()), r[5], bool(r[6]), r[7], r[8], bool(r[9])
+            r[0],
+            r[1],
+            r[2],
+            r[3],
+            tuple(r[4] or ()),
+            r[5],
+            bool(r[6]),
+            r[7],
+            r[8],
+            bool(r[9]),
+            r[10],
         )
         for r in rows
     ]
@@ -87,7 +98,7 @@ def run(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     hits: dict[str, dict[int, list[float]]] = defaultdict(lambda: {5: [], 10: []})
     calib: list[tuple[float, float]] = []
     for a in awards:
-        comps = index.search(a.objet, a.notified_on)
+        comps = index.search(a.objet, a.notified_on, buyer_name=a.buyer_name)
         assert_before(conn, [c.uid for c in comps[:5]], w.t0, f"comparables of {a.uid}")
         predicted = [
             c.company_key for c in model.predict(comps, a.notified_on, a.buyer_siret, top=10)

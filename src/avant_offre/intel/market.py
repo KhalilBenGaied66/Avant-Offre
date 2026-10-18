@@ -57,9 +57,10 @@ def compute(
     company_key: str | None = None,
     depts: list[str] | None = None,
     division: str | None = None,
+    buyer_name: str | None = None,
 ) -> MarketIntel:
     cfg = get_settings().intel
-    comps: list[Comparable] = index.search(text, ref_date, depts=depts)
+    comps: list[Comparable] = index.search(text, ref_date, depts=depts, buyer_name=buyer_name)
     uids = [c.uid for c in comps]
     share, n_buyer, buyer_uids = model.buyer_top_share(comps, buyer_siret)
     references = None
@@ -97,7 +98,7 @@ def compute(
             value=None if share is None else 100.0 * share,
             n=n_buyer,
             sources=buyer_uids,
-            note=None if share is not None else "no comparable award from this buyer",
+            note=None if share is not None else "aucun contrat comparable chez cet acheteur",
         ),
         company_references=references,
     )
@@ -113,7 +114,8 @@ def for_tender(
     today: date | None = None,
 ) -> MarketIntel:
     row = conn.execute(
-        "SELECT objet, buyer_siret, cpv_division FROM tenders WHERE notice_id = ?", [notice_id]
+        "SELECT objet, buyer_siret, cpv_division, buyer_name FROM tenders WHERE notice_id = ?",
+        [notice_id],
     ).fetchone()
     if row is None:
         raise KeyError(f"unknown notice {notice_id}")
@@ -127,4 +129,5 @@ def for_tender(
         buyer_siret=row[1],
         company_key=company_key,
         division=row[2],
+        buyer_name=row[3],
     )

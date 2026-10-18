@@ -153,6 +153,10 @@ class FiltersConfig(BaseModel):
 
 class IntelConfig(BaseModel):
     k_comparables: int = 100
+    # Drop the buyer's own name terms from the comparables query (a town name is a rare, heavy
+    # BM25 term). Tested on the price and competitor backtests and not shipped: slightly worse
+    # on both (DECISIONS, 2026-10-18).
+    drop_buyer_terms: bool = False
     tau_days: float = 730
     same_buyer_boost: float = 0.5
     left_censor_months: int = 12
