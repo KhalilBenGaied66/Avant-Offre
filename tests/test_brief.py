@@ -200,6 +200,29 @@ def _fake(text: str, finish: str = "stop"):  # type: ignore[no-untyped-def]
     return complete
 
 
+def test_default_writer_is_the_template_and_never_calls_the_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def no_call(*args: object, **kwargs: object) -> None:
+        raise AssertionError("the default writer must not call the model")
+
+    monkeypatch.setattr(gateway, "complete", no_call)
+    facts = full_facts()
+    b = writer.write(facts)
+    assert b.fallback and b.fallback_reason == "template: brief.writer" and b.model is None
+    assert b.text == template.render(facts)
+
+
+def test_a_named_model_is_called_even_with_the_template_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The evaluation names its models: it measures them whatever the default."""
+    facts = full_facts()
+    monkeypatch.setattr(gateway, "complete", _fake(template.render(facts)))
+    assert writer.write(facts, model="fake/model").model == "fake/model"
+
+
+@pytest.mark.usefixtures("llm_writer")
 def test_writer_keeps_a_verified_llm_brief(monkeypatch: pytest.MonkeyPatch) -> None:
     facts = full_facts()
     monkeypatch.setattr(gateway, "complete", _fake(template.render(facts)))
@@ -207,6 +230,7 @@ def test_writer_keeps_a_verified_llm_brief(monkeypatch: pytest.MonkeyPatch) -> N
     assert not b.fallback and b.model == "fake/model" and b.cost_usd == 0.0048
 
 
+@pytest.mark.usefixtures("llm_writer")
 def test_writer_falls_back_on_unverifiable_text(monkeypatch: pytest.MonkeyPatch) -> None:
     facts = full_facts()
     monkeypatch.setattr(gateway, "complete", _fake("## Recommandation\nGO, sans réserve."))
@@ -215,14 +239,16 @@ def test_writer_falls_back_on_unverifiable_text(monkeypatch: pytest.MonkeyPatch)
     assert b.text == template.render(facts)
 
 
+@pytest.mark.usefixtures("llm_writer")
 def test_writer_falls_back_on_truncation(monkeypatch: pytest.MonkeyPatch) -> None:
     facts = full_facts()
     monkeypatch.setattr(gateway, "complete", _fake(template.render(facts), finish="length"))
     assert writer.write(facts).fallback_reason == "llm_stop:length"
 
 
+@pytest.mark.usefixtures("llm_writer")
 def test_writer_without_llm_uses_template() -> None:
-    b = writer.write(full_facts())  # no API key in tests
+    b = writer.write(full_facts())  # opted in, but no model answers in tests
     assert b.fallback and (b.fallback_reason or "").startswith("llm_unavailable")
 
 

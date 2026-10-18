@@ -1,8 +1,9 @@
 # Avant-Offre — AI / no-AI decision log
 
 Avant-Offre helps a corporate bid office decide which French public tenders are worth
-answering. Of its 13 steps, 3 use AI as the main tool, 2 use it only as a fallback, and
-the go/no-go decision stays with people.
+answering. Of its 13 steps, 3 were designed with AI as the main tool and 2 with AI only as a
+fallback; the backtests decided what ships. Matching runs on BM25 and the brief on a template:
+the models were built, measured, and kept as options. The go/no-go decision stays with people.
 
 ## Decision rules
 AI is used only to understand meaning in free text or to write for a human reader;
@@ -25,10 +26,10 @@ anything that must be exact, auditable or owned by the business stays determinis
 | 3 | Link award winners to companies (SIRET) | AI fallback | Exact ID join first, then fuzzy name matching. Embeddings only for what remains, and weak links are flagged. | Unlinked winners are numerous enough to bias the backtest. |
 | 4 | Extract tender facts: lots, deadline, award criteria, certifications | AI fallback | Structured eForms fields first (BOAMP uses eForms since January 2024). An LLM reads only facts stated in free text, checked against a schema, with the source quote kept. | Structured fields cover nearly every case; then the LLM is removed. |
 | 5 | Exclude ineligible tenders: deadline, region, amount, procedure | No AI | Bid managers need exact, explainable exclusions. "Probably eligible" is not acceptable. | The bid team adds a criterion found only in prose: extract it in step 4, still filter in SQL. |
-| 6 | Match tenders to the company's profile | AI | Buyers describe the same work in different words, and CPV codes are often broad or wrong. Hybrid search (BM25 plus embeddings), then a reranker. | Hybrid fails to beat CPV alerts and BM25 on Recall@20 by a clear margin: ship BM25. The reranker stays only if its gain is worth its latency. |
+| 6 | Match tenders to the company's profile | AI tested, not shipped (BM25 ships, 2026-10-16) | Buyers describe the same work in different words, and CPV codes are often broad or wrong. Hybrid search (BM25 plus embeddings), then a reranker. | Hybrid fails to beat CPV alerts and BM25 on Recall@20 by a clear margin: ship BM25. The reranker stays only if its gain is worth its latency. |
 | 7 | Market intelligence: likely competitors, newcomer share, price range, SME win share, bids received | No AI | Pure aggregation over DECP, exact and traceable to its rows. Competitors come from similar contracts with any buyer (step 6's search), recent wins weighted more. Newcomers are not named; the brief shows how often first-time winners take comparable contracts. | Never for the numbers. If first-time winners dominate the backtest, lead the brief with the newcomer share instead of names. |
 | 8 | Go/no-go score | No AI | A weighted scorecard the bid team configures, explainable in committee. A model trained on wins would learn from biased labels, since losses are not recorded. | The team has logged enough decisions and outcomes to test a learned model against the scorecard. |
-| 9 | Write the one-page brief | AI | Turns the computed facts and cited contracts into readable prose for the committee. Its only input is those facts. | Readers skip the prose and use only the table: replace the LLM with a template. |
+| 9 | Write the one-page brief | Template; AI opt-in (2026-10-17) | Turns the computed facts and cited contracts into readable prose for the committee. Its only input is those facts. | Readers skip the prose and use only the table: replace the LLM with a template. |
 | 10 | Verify the brief | No AI | Every number in the text is matched against the SQL output. A failing sentence is removed, not rewritten. | Never: this is the safety net. |
 | 11 | Answer ad-hoc questions ("who usually wins with this buyer?") | AI | An agent calls the same SQL and search tools through an MCP server, from Claude or Copilot Studio. It never answers from memory. | The same questions keep coming back: turn them into fixed reports. |
 | 12 | Deliver the weekly digest | Low-code | A Power Automate flow posts it to Teams and Outlook. IT already governs these tools, so there is no custom code to maintain. | Delivery logic grows beyond formatting and routing. |
@@ -70,7 +71,72 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-18 — Comparables keep the buyer's name in the query (dropping it was tested)
+Context: on the demo screenshots, a town's IT support tender (26-97762, Ville de Sartrouville)
+got a comparable price range of 315 k€ to 16.9 M€. Its comparables included a bailiff report and
+site photos at a Sartrouville lycée, pulled in by the town name, a rare and heavy BM25 term.
+Decision: the rule, written before the run, was to drop the buyer's own name terms from the
+comparables query if the price median's error goes down and neither price coverage nor
+competitor Recall@10 drops by more than 0.01. It did not: the full query stays, and
+`intel.drop_buyer_terms` stays false so the test can be rerun.
+Alternatives considered: a gazetteer of place names (new data, and the same effect to measure);
+filtering comparables by CPV group (CPV codes are often broad or wrong, step 6).
+Evidence: with / without dropping, on the same awards: price [P25, P75] coverage 0.491 / 0.495,
+[P10, P90] 0.766 / 0.769, median |log error| 0.823 / 0.815 (3,347 awards); competitor
+Recall@10 0.202 / 0.203 (5,497 pairs). The "without" run reproduces the committed reports
+exactly. Rerun: `AVANT_OFFRE_INTEL__DROP_BUYER_TERMS=true uv run avant-offre eval prices`
+(and `competitors`). On average the buyer's name helps: a town's own past contracts say
+something about its size and suppliers. Single ranges stay wide (typical error ×2.26 on the
+median, `reports/prices.md`); the README says so.
+Revisit if: comparables gain a structured filter (CPV group, amount band) to test with.
+
+### 2026-10-18 — The shortlist ranks every tender and scores the head; a demo answers as of its date
+Context: on the demo store the weekly shortlist took 6 minutes. It scored all 1,715 eligible
+tenders of the week (market statistics for each), and opening one tender rebuilt that scored
+list just to learn its fit rank. Profiling also showed DuckDB retrying `import pandas` for every
+element of a list parameter. And a demo opened a week later would show an empty week and
+deadlines in the past.
+Decision: ranking stays complete (BM25 fit over every eligible tender); the top
+`search.shortlist_scored` (50) are scored in the list, the others when opened, and a tender page
+ranks without scoring. Identifier lists go to DuckDB as one string. `demo-load` records the
+snapshot date; the API, CLI and MCP server answer as of it (today for a real store), and the
+page counts days to deadline from it.
+Alternatives considered: scoring everything in the weekly batch and caching it (minutes after
+each data refresh, and a reviewer opening a tender first still waits); a shorter default week
+(hides tenders).
+Evidence: demo shortlist 6 min → 1.5 s through the review page. Price and competitor backtests
+give the same results (JSON compared) in 12 s instead of 3 min 20 s, and 2 min 40 s instead of
+8 min 30 s. Tests: `tests/test_engine_backtests.py::test_shortlist_scores_only_the_head_and_a_tender_page_scores_nothing_else`,
+`tests/test_store.py`, `tests/test_demo.py::test_a_loaded_demo_answers_as_of_its_snapshot_date`.
+Revisit if: a bid office wants bands on the whole week (raise `shortlist_scored`, or precompute
+it in the weekly batch).
+
+### 2026-10-17 — The template is the default brief; the local model is opt-in
+Context: the review of the 10 samples in `reports/brief_samples.md` (run at 973998c): Claude Code
+read each sentence against the brief's fact table, and the author accepted its findings. In 6 of
+the 7 briefs the model wrote, at least one sentence says what the facts contradict or do not
+support, with numbers that are correct and cited, so the verifier passed them. « Aucun prix
+exploitable n'a été trouvé parmi les 63 contrats comparables », where 63 counts the comparables
+*with* a usable price; « le contrat le plus proche a été passé il y a moins d'un mois » for a
+contract of 26/11/2025; criteria not assessed read as failed; a NO-GO set by the deadline hard
+stop explained by the score; a score compared with a price range.
+Decision: `brief.writer: template`. The deterministic brief is the default everywhere a brief is
+written (API, review page, MCP tool, digest, weekly batch); `brief.writer: llm` turns the model
+on. The evaluation names its models, so it keeps measuring them. This is the revisit condition
+of the entry below.
+Alternatives considered: keep the model and check meaning with another model (an entailment
+model or an LLM judge: a new AI step with its own error rate, guarding prose no reader has asked
+for); more prompt work on the 7B (these are reasoning errors, not format errors); a stronger
+managed model (not free, and it would have to pass the same review).
+Evidence: `reports/brief_samples.md` (status line), `reports/brief_faithfulness.md`;
+`tests/test_brief.py::test_default_writer_is_the_template_and_never_calls_the_model`,
+`::test_a_named_model_is_called_even_with_the_template_default`.
+Revisit if: a model, local or a company endpoint, writes samples that pass the same review: add
+it to `alternatives`, run `avant-offre eval briefs`, read the samples.
+
 ### 2026-10-17 — The free local brief writer is kept behind the verifier; facts fixed, not the prompt
+_Superseded the same day by "The template is the default brief" (above): the review of the
+samples found meaning errors the verifier cannot see._
 Context: `reports/brief_faithfulness.md`, 50 seeded open tenders, Qwen2.5-7B-Instruct (Q4_K_M,
 llama.cpp, 4-core CPU) with the five-section prompt. The model was chosen on 3 notices:
 Qwen2.5-1.5B passed 1 of 3 with the first prompt and 0 of 3 with the skeleton (repetition

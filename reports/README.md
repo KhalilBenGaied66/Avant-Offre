@@ -14,7 +14,7 @@ git commit, config hash, data snapshot date and seed.
 | `embed_bench.md` / `.json` | `avant-offre eval embed` | generated on real data |
 | `competitors.md` / `.json`, `competitors_calibration.png` | `avant-offre eval competitors` | generated on real data |
 | `prices.md` / `.json` | `avant-offre eval prices` | generated on real data |
-| `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | generated on real data with the free local model (Qwen2.5-7B, `make llm-local`); samples not yet reviewed by the author |
+| `brief_faithfulness.md` / `.json`, `brief_samples.md` | `avant-offre eval briefs` | generated on real data with the free local model (Qwen2.5-7B, `make llm-local`); samples reviewed 2026-10-17 (meaning errors: the template stays the default brief) |
 | `SUMMARY.md` | `avant-offre eval summary` | generated (sections without a report say so) |
 
 "Not generated yet" means the backtests have not run yet (`make eval-sample`); it does not mean

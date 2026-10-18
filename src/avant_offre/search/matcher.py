@@ -22,6 +22,7 @@ from avant_offre.search.dense import Embedder, default_embedder, embed_tenders, 
 from avant_offre.search.profile import Profile
 from avant_offre.search.rerank import PairScorer, default_scorer, rerank
 from avant_offre.settings import Retriever, get_models, get_settings
+from avant_offre.store import db
 from avant_offre.store.vectors import VectorStore
 
 
@@ -61,9 +62,9 @@ def _tender_texts(
     conn: duckdb.DuckDBPyConnection, notice_ids: list[str]
 ) -> tuple[list[str], list[str]]:
     rows = conn.execute(
-        "SELECT notice_id, coalesce(objet, '') FROM tenders "
-        "WHERE notice_id IN (SELECT unnest(?)) ORDER BY notice_id",
-        [notice_ids],
+        "SELECT notice_id, coalesce(objet, '') FROM tenders "  # noqa: S608
+        f"WHERE notice_id IN (SELECT {db.IDS}) ORDER BY notice_id",
+        [db.ids(notice_ids)],
     ).fetchall()
     return [r[0] for r in rows], [r[1] for r in rows]
 

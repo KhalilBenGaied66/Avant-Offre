@@ -20,6 +20,7 @@ from avant_offre.settings import get_settings
 class DigestCounts(BaseModel):
     eligible: int
     excluded: int
+    scored: int  # the top of the ranking scored in the shortlist (search.shortlist_scored)
     go: int
     review: int
     no_go: int
@@ -28,7 +29,7 @@ class DigestCounts(BaseModel):
 class DigestItem(BaseModel):
     notice_id: str
     rank: int
-    band: str
+    band: str | None
     total: float | None
     deadline_on: date | None
     buyer_name: str | None
@@ -61,7 +62,7 @@ def build(engine: Engine, shortlist: Shortlist, siret: str, top: int | None = No
     s = get_settings().api
     top = top or s.digest_top
     base = s.public_base_url.rstrip("/")
-    bands = [i.band for i in shortlist.eligible]
+    bands = [i.band for i in shortlist.eligible if i.band is not None]
     q = quote(siret)
     return Digest(
         company_key=shortlist.company_key,
@@ -72,6 +73,7 @@ def build(engine: Engine, shortlist: Shortlist, siret: str, top: int | None = No
         counts=DigestCounts(
             eligible=len(shortlist.eligible),
             excluded=len(shortlist.excluded),
+            scored=len(bands),
             go=bands.count("GO"),
             review=bands.count("REVIEW"),
             no_go=bands.count("NO-GO"),
@@ -99,8 +101,8 @@ HTML = """<!doctype html>
 <body style="font-family:Segoe UI,Arial,sans-serif;color:#1b1b1b;max-width:720px">
 <h2 style="margin-bottom:4px">Avant-Offre — sélection de la semaine</h2>
 <p style="color:#555;margin-top:0">{{ d.company_name }} · semaine du {{ d.week_start.strftime('%d/%m/%Y') }}</p>
-<p>{{ d.counts.eligible }} avis éligibles ({{ d.counts.go }} GO, {{ d.counts.review }} à étudier,
-{{ d.counts.no_go }} NO-GO) · {{ d.counts.excluded }} exclus.</p>
+<p>{{ d.counts.eligible }} avis éligibles ; parmi les {{ d.counts.scored }} premiers : {{ d.counts.go }} GO,
+{{ d.counts.review }} à étudier, {{ d.counts.no_go }} NO-GO · {{ d.counts.excluded }} exclus.</p>
 <table cellpadding="6" style="border-collapse:collapse;width:100%">
 <tr style="background:#f2f2f2;text-align:left"><th>Avis</th><th>Acheteur</th><th>Limite</th><th>Bande</th></tr>
 {% for i in d.items %}<tr style="border-top:1px solid #ddd">

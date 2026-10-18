@@ -1,9 +1,10 @@
-"""LLM brief writer constrained to BriefFacts.
+"""Brief writer: the deterministic template by default, the LLM when opted in.
 
-The model receives only the facts (id, label, display) and the output contract; its text goes
-through the verifier; a failed or unavailable LLM gives the deterministic template, marked
-``fallback = true`` with the reason. Every brief records model, tokens, cost, removed sentences
-and fallback (SPEC §6.9), and every call is traced.
+``brief.writer: template`` (default) renders the template; ``llm``, or a model named by the
+caller (the evaluation), asks the model. The model receives only the facts (id, label, display)
+and the output contract; its text goes through the verifier; a failed or unavailable LLM gives
+the template, marked ``fallback = true`` with the reason. Every brief records model, tokens,
+cost, removed sentences and fallback (SPEC §6.9), and every call is traced.
 """
 
 from __future__ import annotations
@@ -117,6 +118,8 @@ def _template_brief(facts: BriefFacts, reason: str, model: str | None = None) ->
 
 def write(facts: BriefFacts, *, model: str | None = None) -> Brief:
     cfg = get_settings().brief
+    if model is None and cfg.writer == "template":
+        return _template_brief(facts, "template: brief.writer")
     messages = messages_for(facts)
     try:
         res = gateway.complete("brief_writer", messages, model=model)

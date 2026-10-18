@@ -50,6 +50,28 @@ def test_shortlist_scores_and_excludes_with_reasons(store: duckdb.DuckDBPyConnec
     assert all(i.band in {"GO", "REVIEW", "NO-GO"} for i in sl.eligible)
 
 
+def test_shortlist_scores_only_the_head_and_a_tender_page_scores_nothing_else(
+    store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AVANT_OFFRE_SEARCH__SHORTLIST_SCORED", "1")
+    reset_caches()
+    alpha = store.execute(
+        "SELECT company_key FROM company_names WHERE display_name = 'ALPHA INFORMATIQUE'"
+    ).fetchone()
+    assert alpha is not None
+    engine = Engine(store, TODAY)
+    scored: list[str] = []
+    real = engine.score
+    monkeypatch.setattr(engine, "score", lambda nid, prof: scored.append(nid) or real(nid, prof))
+    prof = engine.profile(siret=alpha[0])
+    sl = engine.shortlist(prof)
+    assert [i.band is not None for i in sl.eligible] == [True, False, False]
+    assert scored == [sl.eligible[0].notice_id]
+    fresh = Engine(store, TODAY)
+    monkeypatch.setattr(fresh, "score", lambda *a: pytest.fail("match_for must not score"))
+    assert fresh.match_for("T2", fresh.profile(siret=alpha[0])) is not None
+
+
 def test_intel_values_carry_n_and_sources(store: duckdb.DuckDBPyConnection) -> None:
     intel = Engine(store, TODAY).intel("T2")
     assert intel.n_comparables > 0
@@ -71,6 +93,7 @@ def test_brief_without_llm_is_the_verified_template(store: duckdb.DuckDBPyConnec
     assert app.execute("SELECT count(*) FROM briefs WHERE fallback").fetchone() == (1,)
 
 
+@pytest.mark.usefixtures("llm_writer")
 def test_brief_cache_reuses_model_briefs_only(
     store: duckdb.DuckDBPyConnection, monkeypatch: pytest.MonkeyPatch
 ) -> None:

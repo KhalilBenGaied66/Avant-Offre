@@ -20,7 +20,7 @@ from pathlib import Path
 import duckdb
 
 from avant_offre.ingest.manifest import Manifest
-from avant_offre.runinfo import git_commit, utc_now
+from avant_offre.runinfo import git_commit, snapshot_date, utc_now
 from avant_offre.store import db
 from avant_offre.transform.privacy import PUBLIC_KEY_SQL
 
@@ -65,16 +65,16 @@ def export(conn: duckdb.DuckDBPyConnection, out: Path, company_keys: list[str]) 
     """Awards in the CPV divisions and departments of ``company_keys``, plus open tenders."""
     out.mkdir(parents=True, exist_ok=True)
     conn.execute(
-        """
+        f"""
         CREATE OR REPLACE TEMP TABLE demo_uids AS
         WITH scope AS (
             SELECT DISTINCT a.cpv_division, a.exec_dept
             FROM award_winners w JOIN awards a USING (uid)
-            WHERE w.company_key IN (SELECT unnest(?))
+            WHERE w.company_key IN (SELECT {db.IDS})
         )
         SELECT a.uid FROM awards a JOIN scope USING (cpv_division, exec_dept)
-        """,
-        [company_keys],
+        """,  # noqa: S608 (constant fragment, values bound as parameters)
+        [db.ids(company_keys)],
     )
     public = PUBLIC_KEY_SQL.format(key="w.company_key", natural="n.is_natural_person")
     conn.execute(
@@ -99,6 +99,7 @@ def export(conn: duckdb.DuckDBPyConnection, out: Path, company_keys: list[str]) 
         json.dumps(
             {
                 "created_at": utc_now(),
+                "as_of": None if (snap := snapshot_date()) == "none" else snap,
                 "git_commit": git_commit(),
                 "companies": company_keys,
                 "rows": counts,
@@ -116,7 +117,9 @@ def export(conn: duckdb.DuckDBPyConnection, out: Path, company_keys: list[str]) 
 
 
 def load(snapshot: Path, conn: duckdb.DuckDBPyConnection) -> dict[str, int]:
-    """Create the store tables from a snapshot directory."""
+    """Create the store tables from a snapshot directory. The store then answers as of the
+    snapshot's date (`db.as_of`): its week of notices and their deadlines do not drift with the
+    clock."""
     counts = {}
     for path in sorted(snapshot.glob("*.parquet")):
         conn.execute(
@@ -124,4 +127,15 @@ def load(snapshot: Path, conn: duckdb.DuckDBPyConnection) -> dict[str, int]:
         )
         row = conn.execute(f"SELECT count(*) FROM {path.stem}").fetchone()  # noqa: S608
         counts[path.stem] = int(row[0]) if row else 0
+    info = json.loads((snapshot / "snapshot.json").read_text(encoding="utf-8"))
+    as_of = (
+        info.get("as_of")
+        or max(
+            (s.get("downloaded_at") or "" for s in info.get("sources", {}).values()), default=""
+        )[:10]
+    )
+    if as_of:
+        conn.execute("CREATE TABLE IF NOT EXISTS pipeline_meta (name VARCHAR, value VARCHAR)")
+        conn.execute("DELETE FROM pipeline_meta WHERE name = 'as_of'")
+        conn.execute("INSERT INTO pipeline_meta VALUES ('as_of', ?)", [as_of])
     return counts

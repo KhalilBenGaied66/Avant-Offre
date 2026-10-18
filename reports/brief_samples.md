@@ -2,7 +2,14 @@
 
 _Generated 2026-10-17T11:46:04+00:00 · mode `sample` · git `973998cec1` · config `3b0ff369d932` · data snapshot `2026-10-16` · seed `20261015`_
 
-**Status: not yet reviewed.** The author edits this line after reading each brief.
+**Status: reviewed on 2026-10-17.** Claude Code read every sentence against its fact table;
+the author accepted the findings. In 6 of the 7 briefs the model wrote, at least one sentence
+says what the facts contradict or do not support (26-100028: « aucun prix exploitable » when
+63 comparables have one; 26-100270: a contract of 26/11/2025 « passé il y a moins d'un mois »;
+26-92139: criteria not assessed read as failed; 26-92282: a NO-GO set by the deadline hard stop
+explained by the score; 26-100330: a score compared with a price range; 26-100454: « l'ouverture
+du marché est prévue » citing the deadline). Outcome: the template is the default brief
+(DECISIONS 2026-10-17).
 
 ## 26-100028
 

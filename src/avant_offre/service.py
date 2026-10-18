@@ -25,6 +25,8 @@ from avant_offre.score.scorecard import ScoreResult, TenderInputs
 from avant_offre.search import filters, matcher, profile
 from avant_offre.search.matcher import Match
 from avant_offre.search.profile import Profile
+from avant_offre.settings import get_settings
+from avant_offre.store import db
 from avant_offre.store.db import fetch_dicts, fetch_one, table_exists
 
 
@@ -36,7 +38,7 @@ class ShortlistItem(BaseModel):
     notice_id: str
     rank: int
     fit_percentile: float
-    band: str
+    band: str | None  # None: below search.shortlist_scored, scored when the tender is opened
     total: float | None
     deadline_on: date | None
     published_on: date | None
@@ -57,6 +59,7 @@ class Excluded(BaseModel):
 
 class Shortlist(BaseModel):
     company_key: str | None
+    as_of: date  # the day deadlines are counted from (db.as_of)
     week_start: date
     week_end: date
     eligible: list[ShortlistItem]
@@ -80,11 +83,15 @@ class Engine:
     _index: ComparablesIndex | None = None
     _competitors: CompetitorModel | None = None
     _matches: dict[str, dict[str, Match]] = field(default_factory=dict)
+    _tables: set[str] = field(default_factory=set)  # seen to exist: tables are never dropped
 
     # ---- inputs --------------------------------------------------------------------------
     def require(self, table: str) -> None:
+        if table in self._tables:
+            return
         if not table_exists(self.conn, table):
             raise NotFoundError(f"no {table} in the store: run `make data-sample` first")
+        self._tables.add(table)
 
     def profile(self, siret: str | None = None, free_text: str | None = None) -> Profile:
         if siret:
@@ -109,7 +116,10 @@ class Engine:
         return self._competitors
 
     # ---- steps 5–6 -----------------------------------------------------------------------
-    def shortlist(self, prof: Profile, week: str | None = None) -> Shortlist:
+    def _rank_week(
+        self, prof: Profile, week: str | None
+    ) -> tuple[date, date, set[str], list[filters.Eligibility], list[Match]]:
+        """The week's tenders, their eligibility, and the eligible ones ranked by fit."""
         self.require("tenders")
         start, end = week_bounds(week, self.today)
         in_week = {
@@ -121,28 +131,33 @@ class Engine:
         }
         elig = [e for e in filters.eligibility(self.conn, self.today) if e.notice_id in in_week]
         ok = [e.notice_id for e in elig if e.eligible]
-        matches = matcher.match_tenders(self.conn, prof, ok)
+        matches = sorted(matcher.match_tenders(self.conn, prof, ok), key=lambda m: m.rank)
         self._matches[prof.profile_id] = {m.notice_id: m for m in matches}
+        return start, end, in_week, elig, matches
+
+    def shortlist(self, prof: Profile, week: str | None = None) -> Shortlist:
+        start, end, in_week, elig, matches = self._rank_week(prof, week)
+        scored = get_settings().search.shortlist_scored
         rows = {
             r["notice_id"]: r
             for r in fetch_dicts(
                 self.conn,
-                "SELECT notice_id, objet, buyer_name, deadline_on, published_on, dept, url, "
-                "estimated_value_eur FROM tenders WHERE notice_id IN (SELECT unnest(?))",
-                [list(in_week)],
+                "SELECT notice_id, objet, buyer_name, deadline_on, published_on, dept, url, "  # noqa: S608
+                f"estimated_value_eur FROM tenders WHERE notice_id IN (SELECT {db.IDS})",
+                [db.ids(in_week)],
             )
         }
         items = []
-        for m in matches:
+        for i, m in enumerate(matches):
             r = rows[m.notice_id]
-            sc = self.score(m.notice_id, prof)
+            sc = self.score(m.notice_id, prof) if i < scored else None
             items.append(
                 ShortlistItem(
                     notice_id=m.notice_id,
                     rank=m.rank,
                     fit_percentile=m.fit_percentile,
-                    band=sc.band,
-                    total=sc.total,
+                    band=sc.band if sc else None,
+                    total=sc.total if sc else None,
                     deadline_on=r["deadline_on"],
                     published_on=r["published_on"],
                     buyer_name=r["buyer_name"],
@@ -165,6 +180,7 @@ class Engine:
         ]
         return Shortlist(
             company_key=prof.company_key,
+            as_of=self.today,
             week_start=start,
             week_end=end,
             eligible=items,
@@ -174,7 +190,7 @@ class Engine:
     def match_for(self, notice_id: str, prof: Profile) -> Match | None:
         cached = self._matches.get(prof.profile_id)
         if cached is None:
-            self.shortlist(prof)
+            self._rank_week(prof, None)  # the fit rank only: no need to score the whole week
             cached = self._matches.get(prof.profile_id, {})
         return cached.get(notice_id)
 

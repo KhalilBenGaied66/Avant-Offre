@@ -68,7 +68,7 @@ export default function TenderPage({ id, siret }: { id: string; siret: string })
     document.getElementById(`fact-${factId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const days = daysUntil(tender?.deadline_on);
+  const days = daysUntil(tender?.deadline_on, tender?.as_of);
   return (
     <section>
       <button className="link" onClick={() => go("/", { siret })}>

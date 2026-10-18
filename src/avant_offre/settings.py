@@ -140,6 +140,9 @@ class SearchConfig(BaseModel):
     retrievers: list[Retriever] = Field(default_factory=lambda: list[Retriever](["bm25"]))
     rerank: bool = False
     bm25: Bm25Config = Field(default_factory=Bm25Config)
+    # Tenders of the week scored in the shortlist, by fit rank. Ranking is cheap, scoring is not
+    # (market statistics per tender); the others are scored when opened.
+    shortlist_scored: int = 50
 
 
 class FiltersConfig(BaseModel):
@@ -150,6 +153,10 @@ class FiltersConfig(BaseModel):
 
 class IntelConfig(BaseModel):
     k_comparables: int = 100
+    # Drop the buyer's own name terms from the comparables query (a town name is a rare, heavy
+    # BM25 term). Tested on the price and competitor backtests and not shipped: slightly worse
+    # on both (DECISIONS, 2026-10-18).
+    drop_buyer_terms: bool = False
     tau_days: float = 730
     same_buyer_boost: float = 0.5
     left_censor_months: int = 12
@@ -185,6 +192,9 @@ class EvalConfig(BaseModel):
 
 
 class BriefConfig(BaseModel):
+    # Who writes the brief when no model is named: the deterministic template, or the LLM of
+    # config/models.yaml (opt-in). The evaluation names its models, so it measures them anyway.
+    writer: Literal["template", "llm"] = "template"
     max_words: int = 250
     max_removed: int = 2
 

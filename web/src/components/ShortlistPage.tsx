@@ -75,7 +75,7 @@ export default function ShortlistPage({ siret, week }: { siret: string; week: st
             </thead>
             <tbody>
               {data.eligible.map((t) => {
-                const days = daysUntil(t.deadline_on);
+                const days = daysUntil(t.deadline_on, data.as_of);
                 const why = t.explanations
                   .map((e) => `• ${e.objet}${e.notified_on ? ` (${fmtDate(e.notified_on)})` : ""}`)
                   .join("\n");
@@ -83,7 +83,11 @@ export default function ShortlistPage({ siret, week }: { siret: string; week: st
                   <tr key={t.notice_id} className="clickable" onClick={() => go(`/tender/${encodeURIComponent(t.notice_id)}`, { siret })}>
                     <td>{t.rank}</td>
                     <td>
-                      <BandChip band={t.band} />
+                      {t.band ? (
+                        <BandChip band={t.band} />
+                      ) : (
+                        <span className="muted" title="Grille calculée à l'ouverture de l'avis">—</span>
+                      )}
                     </td>
                     <td>
                       {fmtDate(t.deadline_on)}

@@ -7,7 +7,7 @@ raisonnement (où l'IA sert, où elle ne sert pas) et la traçabilité, pas une 
 
 ```bash
 make setup
-make data-sample index-sample        # ou : uv run avant-offre demo-load demo/
+make data-sample index-sample        # ou, sans téléchargement : make demo (instantané au 16/10/2026)
 make eval-sample                     # pour montrer de vrais rapports
 make serve                           # terminal 1
 make web-install web                 # terminal 2, http://localhost:5173
@@ -43,10 +43,11 @@ bureau des offres (`config/scorecard.yaml`).
 
 **1:45 – 2:20 · La note d'une page**
 Cliquer « Générer la note ». Cliquer une citation [F12] : la ligne du fait s'allume.
-Message : le LLM ne reçoit que les faits ; un vérificateur sans IA contrôle chaque nombre (formats
-français, k€, M€) et chaque citation ; une phrase fausse est retirée, et si la recommandation est
-touchée, on bascule sur un modèle déterministe. Montrer le taux de bascule et les phrases
-retirées dans `reports/brief_faithfulness.md`.
+Message : la note livrée est déterministe, chaque chiffre renvoie à un fait calculé. Un LLM local
+a été branché derrière un vérificateur de chiffres et mesuré (`reports/brief_faithfulness.md`) :
+il passe le vérificateur, mais la relecture de `reports/brief_samples.md` a trouvé des phrases au
+sens faux (« aucun prix exploitable » quand 63 comparables en ont un). Il reste donc en option :
+l'IA n'est livrée que là où elle bat la solution simple.
 
 **2:20 – 2:45 · Une question ponctuelle**
 Dans Claude Desktop : « Qui remporte d'habitude des marchés comparables à cet avis, et le marché

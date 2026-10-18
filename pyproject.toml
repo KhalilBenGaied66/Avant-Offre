@@ -3,6 +3,8 @@ name = "avant-offre"
 version = "0.1.0"
 description = "Go/no-go copilot for a corporate bid office answering French public tenders."
 readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = ["License :: Other/Proprietary License", "Private :: Do Not Upload"]
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "duckdb>=1.1",

@@ -14,7 +14,7 @@ import threading
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, ClassVar, Literal
 
 import duckdb
@@ -77,7 +77,7 @@ def engine_scope() -> Iterator[Engine]:
             _State.conn = db.connect(read_only=True)
         if _State.app_conn is None:
             _State.app_conn = db.app_connect()
-        engine = Engine(_State.conn, date.today(), app_conn=_State.app_conn)
+        engine = Engine(_State.conn, db.as_of(_State.conn), app_conn=_State.app_conn)
         # Reuse the search index and competitor model across requests of the same day.
         cache = _State.engine_cache
         if cache.get("day") == engine.today:
@@ -130,7 +130,7 @@ def list_tenders(
 @app.get("/tenders/{notice_id}", dependencies=[Protected])
 def get_tender(notice_id: str) -> dict[str, Any]:
     with engine_scope() as engine:
-        return engine.tender(notice_id)
+        return {**engine.tender(notice_id), "as_of": engine.today}
 
 
 @app.get("/tenders/{notice_id}/intel", dependencies=[Protected])
@@ -186,7 +186,7 @@ def awards(
     with engine_scope() as engine:
         return db.fetch_dicts(
             engine.conn,
-            """
+            f"""
             SELECT a.uid, a.notified_on, a.buyer_name, a.objet, a.cpv, a.exec_dept,
                    CASE WHEN a.is_framework OR a.is_dynamic_system THEN NULL
                         ELSE a.amount_eur END AS amount_eur,
@@ -196,10 +196,10 @@ def awards(
             FROM awards a
             LEFT JOIN award_winners w USING (uid)
             LEFT JOIN company_names n ON n.company_key = w.company_key
-            WHERE a.uid IN (SELECT unnest(?))
+            WHERE a.uid IN (SELECT {db.IDS})
             GROUP BY ALL ORDER BY a.notified_on DESC
-            """,
-            [ids],
+            """,  # noqa: S608 (constant fragment, values bound as parameters)
+            [db.ids(ids)],
         )
 
 

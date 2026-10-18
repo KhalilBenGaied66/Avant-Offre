@@ -228,7 +228,6 @@ def match(
     show_excluded: bool = typer.Option(False, help="Also list excluded tenders and why."),
 ) -> None:
     """Rank open tenders for a company (steps 5-6), with explanations."""
-    from datetime import date
 
     from rich.table import Table
 
@@ -240,7 +239,7 @@ def match(
     with db.session(read_only=True) as conn:
         if not db.table_exists(conn, "tenders"):
             _fail("no tenders in the store: run `make data-sample` (BOAMP pull) first.")
-        today = date.today()
+        today = db.as_of(conn)
         if siret:
             key = profile.company_key_for(conn, siret)
             if key is None:
@@ -281,8 +280,9 @@ def match(
 
 def _engine(conn: object):  # type: ignore[no-untyped-def]
     from avant_offre.service import Engine
+    from avant_offre.store import db
 
-    return Engine(conn)  # type: ignore[arg-type]
+    return Engine(conn, db.as_of(conn))  # type: ignore[arg-type]
 
 
 @app.command()
@@ -432,7 +432,10 @@ def demo_export(
 
 
 @app.command("demo-load")
-def demo_load(snapshot: str = typer.Argument("demo", help="Snapshot directory.")) -> None:
+def demo_load(
+    snapshot: str = typer.Argument("demo", help="Snapshot directory."),
+    force: bool = typer.Option(False, help="Replace an existing store."),
+) -> None:
     """Build data/avant_offre.duckdb from a demo snapshot (no download needed)."""
     from pathlib import Path
 
@@ -440,6 +443,9 @@ def demo_load(snapshot: str = typer.Argument("demo", help="Snapshot directory.")
     from avant_offre.intel import comparables
     from avant_offre.store import db
 
+    store = get_settings().db_path
+    if store.exists() and not force:
+        _fail(f"{store} already exists: loading the demo would replace it (--force to do so)")
     with db.session() as conn:
         counts = demo.load(Path(snapshot), conn)
         comparables.save_awards_index(conn)

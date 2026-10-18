@@ -42,7 +42,7 @@ def run(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     per_div: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     not_assessed = 0
     for a in awards:
-        pr = price_range(index.search(a.objet, a.notified_on))
+        pr = price_range(index.search(a.objet, a.notified_on, buyer_name=a.buyer_name))
         if not pr.assessed:
             not_assessed += 1
             continue

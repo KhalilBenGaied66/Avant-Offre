@@ -18,6 +18,7 @@ from typing import Literal
 import duckdb
 
 from avant_offre.settings import get_settings
+from avant_offre.store import db
 
 Split = Literal["tuning", "test"]
 
@@ -56,9 +57,9 @@ def assert_before(
     if not ids:
         return
     row = conn.execute(
-        "SELECT count(*), max(notified_on) FROM awards WHERE uid IN (SELECT unnest(?)) "
+        f"SELECT count(*), max(notified_on) FROM awards WHERE uid IN (SELECT {db.IDS}) "
         "AND (notified_on >= ? OR notified_on IS NULL)",
-        [ids, cutoff],
+        [db.ids(ids), cutoff],
     ).fetchone()
     if row and row[0]:
         raise LeakageError(f"{what}: {row[0]} record(s) dated on/after {cutoff} (latest {row[1]})")

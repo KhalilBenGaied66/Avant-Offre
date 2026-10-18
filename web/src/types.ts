@@ -13,7 +13,7 @@ export interface ShortlistItem {
   notice_id: string;
   rank: number;
   fit_percentile: number;
-  band: Band;
+  band: Band | null; // null: below the scored head of the ranking, scored when opened
   total: number | null;
   deadline_on: string | null;
   published_on: string | null;
@@ -34,6 +34,7 @@ export interface Excluded {
 
 export interface Shortlist {
   company_key: string | null;
+  as_of: string;
   week_start: string;
   week_end: string;
   eligible: ShortlistItem[];
@@ -42,6 +43,7 @@ export interface Shortlist {
 
 export interface Tender {
   notice_id: string;
+  as_of: string;
   buyer_name: string | null;
   objet: string | null;
   published_on: string | null;

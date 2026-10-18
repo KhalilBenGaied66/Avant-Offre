@@ -114,7 +114,7 @@ def build(d: Digest) -> dict[str, Any]:
             facts=[
                 Fact(title="Avis éligibles", value=str(d.counts.eligible)),
                 Fact(
-                    title="GO / À étudier / NO-GO",
+                    title=f"GO / À étudier / NO-GO (parmi les {d.counts.scored} premiers)",
                     value=f"{d.counts.go} / {d.counts.review} / {d.counts.no_go}",
                 ),
                 Fact(title="Avis exclus", value=str(d.counts.excluded)),
@@ -136,9 +136,9 @@ def build(d: Digest) -> dict[str, Any]:
                                 verticalContentAlignment="Center",
                                 items=[
                                     TextBlock(
-                                        text=item.band,
+                                        text=item.band or "—",
                                         weight="Bolder",
-                                        color=BAND_COLOR.get(item.band, "Default"),
+                                        color=BAND_COLOR.get(item.band or "", "Default"),
                                     ),
                                 ],
                             ),
