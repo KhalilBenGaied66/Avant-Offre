@@ -1,5 +1,59 @@
 # Avant-Offre
 
+**In English below** · *La documentation complète est en français, à partir de « Le besoin ».*
+
+## In English
+
+Avant-Offre is a go/no-go copilot for the bid office of a company answering French public
+tenders. Each week it ranks the new notices (BOAMP) against the company's track record of public
+contracts (DECP), prepares a one-page brief per notice (comparable contracts, likely competitors,
+market openness, price range, a go/no-go grid the bid team owns) and answers ad-hoc questions
+through an MCP agent. The committee decides; nothing is sent anywhere.
+
+It is a portfolio project for AI Engineer / Forward Deployed Engineer roles. **It has not been
+tested with real users**: every result below is measured against public award outcomes, on real
+open data (DECP, BOAMP, SIRENE), with a time cutoff and a leakage test.
+
+**What the measurements decided** (`reports/SUMMARY.md`, `docs/DECISIONS.md`): AI ships only
+where it beats the simplest baseline.
+
+| Step | What ships | Measured |
+| --- | --- | --- |
+| Match notices to the company | BM25 (no AI) | Recall@20 0.270 vs 0.139 for the best CPV alert. Embeddings (0.209), a BM25 + embeddings hybrid (0.258) and a cross-encoder reranker (0.237, 100 companies) were built and measured: none beat BM25 |
+| Likely competitors | SQL over past awards | The actual winner is in the top 10 for 20 % of awards, 44 % when it already worked for the buyer. First-time winners (8 %) cannot be named: the brief gives their share |
+| Price range | Quantiles of comparable awards | [P25, P75] covers 49.5 % of actual amounts (target 50 %), [P10, P90] 76.9 % (target 80 %). A single range stays wide: typical error ×2.3 on the median |
+| One-page brief | Deterministic template; LLM opt-in | A free local LLM (Qwen2.5-7B) behind a numeric and citation verifier: 26 % of its briefs fell back to the template, and a review of the samples found meaning errors the verifier cannot see, so the template is the default |
+
+Worth a look: the decision log (dated entries, including what was built and not shipped), the
+data findings (`docs/DATA_QUALITY.md`: F-007 is a data bug found by reading a brief, which
+reversed an earlier decision), and the reports, each stamped with commit, config hash and
+snapshot date.
+
+| Weekly shortlist | Tender page and score grid |
+| --- | --- |
+| ![Weekly shortlist](docs/images/shortlist.png) | ![Tender page](docs/images/tender.png) |
+
+![One-page brief: every number cites a computed fact; clicking a citation highlights it](docs/images/brief.png)
+
+**Try it in a few minutes**, without downloading the data: `demo/` is a pseudonymized snapshot
+(4.8 MB) of one IT consulting firm's public market, from public data, as of 16/10/2026. It needs
+Python 3.12 with [uv](https://docs.astral.sh/uv/) and Node 22.
+
+```bash
+cp .env.example .env
+make setup web-install
+make demo                       # loads demo/ into data/ (seconds)
+make serve                      # API on :8000; then, in another terminal:
+make web                        # open http://localhost:5173/#/?siret=352033914
+```
+
+Stack: Python 3.12, DuckDB, bm25s, FastAPI, an MCP server, a React review page; LLM calls only
+through a provider-neutral gateway (LiteLLM) with tracing. Licence: proprietary, all rights
+reserved (`LICENSE`): you may read the code and run it to evaluate the author's work; any other
+use needs written permission.
+
+---
+
 Copilote go / no-go pour le bureau des appels d'offres d'une entreprise qui répond aux marchés
 publics français. Avant-Offre classe les avis de la semaine selon le profil de l'entreprise,
 prépare pour chaque avis une note d'une page (contrats comparables, concurrents probables,
@@ -219,8 +273,10 @@ uv run avant-offre match --siret <SIRET>          # classement en ligne de comma
 uv run avant-offre brief --notice <id> --siret <SIRET>
 ```
 
-Sans téléchargement : `uv run avant-offre demo-load demo/` construit la base depuis un instantané
-pseudonymisé (à produire avec `avant-offre demo-export` sur une base réelle).
+Sans téléchargement : `make demo` construit la base depuis `demo/`, un instantané pseudonymisé
+(4,8 Mo) du marché d'une société de conseil en informatique, au 16/10/2026 ; la base répond à la
+date de l'instantané. Ouvrir ensuite `http://localhost:5173/#/?siret=352033914`. Un autre
+instantané se produit avec `avant-offre demo-export --siret <SIRET>` sur une base réelle.
 
 Arborescence : `src/avant_offre/` (ingest, transform, search, intel, score, brief, agent, api,
 digest, llm, eval), `config/` (réglages, grille, modèles), `docs/`, `reports/`, `web/`, `tests/`.
@@ -238,3 +294,9 @@ Les données ouvertes contenant des données personnelles restent soumises au dr
 protection des données : les entrepreneurs individuels sont pseudonymisés dans toutes les
 sorties (« Entreprise individuelle #… »), et un titulaire dont le statut est inconnu l'est aussi
 par défaut.
+
+## Licence
+
+Propriétaire, tous droits réservés (`LICENSE`). La lecture du code et son exécution pour évaluer
+le travail de l'auteur sont permises ; tout autre usage, copie, modification ou diffusion demande
+l'accord écrit de l'auteur. Les données ouvertes et les dépendances gardent leur propre licence.
