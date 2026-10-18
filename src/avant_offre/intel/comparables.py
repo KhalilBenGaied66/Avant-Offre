@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import duckdb
 import numpy as np
@@ -62,12 +63,14 @@ class ComparablesIndex:
     ) -> None:
         self.conn = conn
         self.before = before
-        where = "objet IS NOT NULL AND notified_on IS NOT NULL" + (
+        self._where = "objet IS NOT NULL AND notified_on IS NOT NULL" + (
             " AND notified_on < ?" if before else ""
         )
+        self._params: list[Any] = [before] if before else []
+        self._by_uid: dict[str, tuple[Any, ...]] | None = None
         rows = conn.execute(
-            f"SELECT uid, objet, notified_on FROM awards WHERE {where} ORDER BY uid",  # noqa: S608
-            [before] if before else [],
+            f"SELECT uid, objet, notified_on FROM awards WHERE {self._where} ORDER BY uid",  # noqa: S608
+            self._params,
         ).fetchall()
         self.ids = [r[0] for r in rows]
         self.days = np.array([to_day(r[2]) for r in rows], dtype=np.int64)
@@ -128,16 +131,12 @@ class ComparablesIndex:
     ) -> list[Comparable]:
         if not uids:
             return []
-        rows = self.conn.execute(
-            f"SELECT {FIELDS} FROM awards WHERE uid IN (SELECT unnest(?)) "  # noqa: S608
-            "AND notified_on < ? AND (? IS NULL OR list_contains(?, exec_dept))",
-            [uids, ref_date, depts, depts],
-        ).fetchall()
-        by_uid = {r[0]: r for r in rows}
+        by_uid = self._rows()
+        wanted = None if depts is None else set(depts)
         out: list[Comparable] = []
         for u in uids:
             r = by_uid.get(u)
-            if r is None:
+            if r is None or not r[1] < ref_date or (wanted is not None and r[6] not in wanted):
                 continue
             out.append(
                 Comparable(
@@ -159,6 +158,17 @@ class ComparablesIndex:
             if len(out) >= k:
                 break
         return out
+
+    def _rows(self) -> dict[str, tuple[Any, ...]]:
+        """Fields of every indexed award, read once. One query per search made a weekly
+        shortlist slow: it searches comparables for every tender of the week."""
+        if self._by_uid is None:
+            rows = self.conn.execute(
+                f"SELECT {FIELDS} FROM awards WHERE {self._where}",  # noqa: S608
+                self._params,
+            ).fetchall()
+            self._by_uid = {r[0]: r for r in rows}
+        return self._by_uid
 
 
 def index_dir() -> Path:
