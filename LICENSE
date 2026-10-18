@@ -1,0 +1,35 @@
+Avant-Offre — Proprietary Licence
+
+Copyright (c) 2026 Khalil Ben Gaied (https://github.com/KhalilBenGaied66). All rights reserved.
+
+This repository is published so that its work can be read and evaluated, for example by
+recruiters and hiring teams. Publishing it does not grant a licence to use it.
+
+1. Allowed without asking
+   - Viewing the source code, documentation and reports, and forking the repository on GitHub
+     as GitHub's Terms of Service allow for public repositories.
+   - Running the code on your own machine for the sole purpose of evaluating the author's
+     work, for example during a recruitment process. Copies made for that purpose must be
+     deleted when the evaluation ends.
+
+2. Not allowed without the author's prior written permission
+   - Using the software, or any part of it, for any other purpose, including commercial,
+     internal business, consulting, research or production use.
+   - Copying, modifying, merging, publishing, distributing, sublicensing or selling the
+     software or works derived from it, in whole or in part.
+   - Using the code, documentation or reports to train or evaluate machine learning models.
+
+3. Permission
+   Requests go to the author through https://github.com/KhalilBenGaied66. Permission is valid
+   only if given in writing by the author.
+
+4. Third-party material
+   This licence does not cover third-party material, which keeps its own licence: the open
+   data from DECP, BOAMP and SIRENE (Licence Ouverte / Open Licence 2.0, Etalab), including the
+   derived data in reports/ and demo/, and the dependencies listed in pyproject.toml, uv.lock
+   and web/package.json.
+
+5. No warranty
+   The software is provided "as is", without warranty of any kind, express or implied. In no
+   event shall the author be liable for any claim, damages or other liability arising from,
+   out of or in connection with the software or its use.

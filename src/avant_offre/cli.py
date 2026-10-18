@@ -432,7 +432,10 @@ def demo_export(
 
 
 @app.command("demo-load")
-def demo_load(snapshot: str = typer.Argument("demo", help="Snapshot directory.")) -> None:
+def demo_load(
+    snapshot: str = typer.Argument("demo", help="Snapshot directory."),
+    force: bool = typer.Option(False, help="Replace an existing store."),
+) -> None:
     """Build data/avant_offre.duckdb from a demo snapshot (no download needed)."""
     from pathlib import Path
 
@@ -440,6 +443,9 @@ def demo_load(snapshot: str = typer.Argument("demo", help="Snapshot directory.")
     from avant_offre.intel import comparables
     from avant_offre.store import db
 
+    store = get_settings().db_path
+    if store.exists() and not force:
+        _fail(f"{store} already exists: loading the demo would replace it (--force to do so)")
     with db.session() as conn:
         counts = demo.load(Path(snapshot), conn)
         comparables.save_awards_index(conn)
