@@ -65,13 +65,15 @@ def newcomer_share(
         [db.ids(uids), since, since],
     ).fetchall()
     if not rows:
-        return Stat(value=None, n=0, note="no comparable award after the censoring window")
+        return Stat(
+            value=None, n=0, note="aucun contrat comparable après le début de la période observée"
+        )
     hits = [u for u, new in rows if new]
     return Stat(
         value=100.0 * len(hits) / len(rows),
         n=len(rows),
         sources=[u for u, _ in rows],
-        note=f"comparables notified from {since}" if since else None,
+        note=f"comparables notifiés depuis le {since:%d/%m/%Y}" if since else None,
     )
 
 
@@ -86,7 +88,7 @@ def sme_share(conn: duckdb.DuckDBPyConnection, uids: Sequence[str]) -> Stat:
         [db.ids(uids)],
     ).fetchall()
     if not rows:
-        return Stat(value=None, n=0, note="size category unknown for every winner")
+        return Stat(value=None, n=0, note="taille inconnue pour tous les titulaires")
     return Stat(
         value=100.0 * sum(1 for _, s in rows if s) / len(rows),
         n=len(rows),
@@ -101,7 +103,7 @@ def bids_received(comps: Sequence[Comparable]) -> Stat:
         if c.bids_received is not None and c.bids_received > 0 and not c.is_dynamic_system
     ]
     if not kept:
-        return Stat(value=None, n=0, note="offresRecues missing on comparables")
+        return Stat(value=None, n=0, note="nombre d'offres absent des comparables")
     return Stat(
         value=float(np.median([v for _, v in kept])),
         n=len(kept),

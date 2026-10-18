@@ -20,7 +20,7 @@ import duckdb
 import numpy as np
 
 from avant_offre.search import hybrid
-from avant_offre.search.bm25 import Bm25Index
+from avant_offre.search.bm25 import Bm25Index, tokenize
 from avant_offre.search.dense import Embedder, default_embedder
 from avant_offre.settings import get_models, get_settings
 from avant_offre.store.vectors import VectorStore, to_day
@@ -90,10 +90,13 @@ class ComparablesIndex:
         ref_date: date,
         k: int | None = None,
         depts: list[str] | None = None,
+        buyer_name: str | None = None,
     ) -> list[Comparable]:
-        k = k or get_settings().intel.k_comparables
+        cfg = get_settings().intel
+        k = k or cfg.k_comparables
         cutoff = to_day(ref_date)
-        bm = self.bm25.scores(text)
+        drop = frozenset(tokenize(buyer_name)) if cfg.drop_buyer_terms else frozenset()
+        bm = self.bm25.scores(text, drop)
         bm[self.days >= cutoff] = 0.0
         sims: dict[int, float] = {}
         rankings: list[np.ndarray] = []

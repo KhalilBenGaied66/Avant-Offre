@@ -71,6 +71,46 @@ Evidence: <metric, before → after, report path>
 Revisit if: <condition>
 ```
 
+### 2026-10-18 — Comparables keep the buyer's name in the query (dropping it was tested)
+Context: on the demo screenshots, a town's IT support tender (26-97762, Ville de Sartrouville)
+got a comparable price range of 315 k€ to 16.9 M€. Its comparables included a bailiff report and
+site photos at a Sartrouville lycée, pulled in by the town name, a rare and heavy BM25 term.
+Decision: the rule, written before the run, was to drop the buyer's own name terms from the
+comparables query if the price median's error goes down and neither price coverage nor
+competitor Recall@10 drops by more than 0.01. It did not: the full query stays, and
+`intel.drop_buyer_terms` stays false so the test can be rerun.
+Alternatives considered: a gazetteer of place names (new data, and the same effect to measure);
+filtering comparables by CPV group (CPV codes are often broad or wrong, step 6).
+Evidence: with / without dropping, on the same awards: price [P25, P75] coverage 0.491 / 0.495,
+[P10, P90] 0.766 / 0.769, median |log error| 0.823 / 0.815 (3,347 awards); competitor
+Recall@10 0.202 / 0.203 (5,497 pairs). The "without" run reproduces the committed reports
+exactly. Rerun: `AVANT_OFFRE_INTEL__DROP_BUYER_TERMS=true uv run avant-offre eval prices`
+(and `competitors`). On average the buyer's name helps: a town's own past contracts say
+something about its size and suppliers. Single ranges stay wide (typical error ×2.26 on the
+median, `reports/prices.md`); the README says so.
+Revisit if: comparables gain a structured filter (CPV group, amount band) to test with.
+
+### 2026-10-18 — The shortlist ranks every tender and scores the head; a demo answers as of its date
+Context: on the demo store the weekly shortlist took 6 minutes. It scored all 1,715 eligible
+tenders of the week (market statistics for each), and opening one tender rebuilt that scored
+list just to learn its fit rank. Profiling also showed DuckDB retrying `import pandas` for every
+element of a list parameter. And a demo opened a week later would show an empty week and
+deadlines in the past.
+Decision: ranking stays complete (BM25 fit over every eligible tender); the top
+`search.shortlist_scored` (50) are scored in the list, the others when opened, and a tender page
+ranks without scoring. Identifier lists go to DuckDB as one string. `demo-load` records the
+snapshot date; the API, CLI and MCP server answer as of it (today for a real store), and the
+page counts days to deadline from it.
+Alternatives considered: scoring everything in the weekly batch and caching it (minutes after
+each data refresh, and a reviewer opening a tender first still waits); a shorter default week
+(hides tenders).
+Evidence: demo shortlist 6 min → 1.5 s through the review page. Price and competitor backtests
+give the same results (JSON compared) in 12 s instead of 3 min 20 s, and 2 min 40 s instead of
+8 min 30 s. Tests: `tests/test_engine_backtests.py::test_shortlist_scores_only_the_head_and_a_tender_page_scores_nothing_else`,
+`tests/test_store.py`, `tests/test_demo.py::test_a_loaded_demo_answers_as_of_its_snapshot_date`.
+Revisit if: a bid office wants bands on the whole week (raise `shortlist_scored`, or precompute
+it in the weekly batch).
+
 ### 2026-10-17 — The template is the default brief; the local model is opt-in
 Context: the review of the 10 samples in `reports/brief_samples.md` (run at 973998c): Claude Code
 read each sentence against the brief's fact table, and the author accepted its findings. In 6 of
