@@ -7,7 +7,7 @@ raisonnement (où l'IA sert, où elle ne sert pas) et la traçabilité, pas une 
 
 ```bash
 make setup
-make data-sample index-sample        # ou : uv run avant-offre demo-load demo/
+make data-sample index-sample        # ou, sans téléchargement : make demo (instantané au 16/10/2026)
 make eval-sample                     # pour montrer de vrais rapports
 make serve                           # terminal 1
 make web-install web                 # terminal 2, http://localhost:5173
