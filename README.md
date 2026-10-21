@@ -10,7 +10,8 @@ contracts (DECP), prepares a one-page brief per notice (comparable contracts, li
 market openness, price range, a go/no-go grid the bid team owns) and answers ad-hoc questions
 through an MCP agent. The committee decides; nothing is sent anywhere.
 
-It is a portfolio project for AI Engineer / Forward Deployed Engineer roles. **It has not been
+It is a portfolio project for AI Engineer / Forward Deployed Engineer roles, built with Claude Code
+as a programming assistant under the working rules in `CLAUDE.md`. **It has not been
 tested with real users**: every result below is measured against public award outcomes, on real
 open data (DECP, BOAMP, SIRENE), with a time cutoff and a leakage test.
 
@@ -60,7 +61,8 @@ prépare pour chaque avis une note d'une page (contrats comparables, concurrents
 ouverture du marché, fourchette de prix, grille de décision) et répond aux questions ponctuelles
 via un agent. La décision reste au comité.
 
-Projet de portfolio (AI Engineer / Forward Deployed Engineer). Le code, le journal de décisions
+Projet de portfolio (AI Engineer / Forward Deployed Engineer), développé avec Claude Code comme
+assistant de programmation, selon les règles de `CLAUDE.md`. Le code, le journal de décisions
 et les rapports d'évaluation sont faits pour être relus.
 
 > **État actuel.** Tout le système est écrit et testé (tests automatisés, CI verte). Les données
